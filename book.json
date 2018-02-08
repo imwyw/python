@@ -1,0 +1,47 @@
+{
+    "title": "Python",
+    "author": "Wang Yuanwei <now_way@126.com>",
+    "description": "Python",
+    "language": "zh-hans",
+    "gitbook": ">=3.0.0",
+    "plugins": [
+        "disqus",
+        "anchors",
+        "multipart",
+        "-search",
+        "-lunr",
+        "search-plus",
+        "-sharing",
+        "splitter",
+        "sectionx",
+        "anchor-navigation-ex",
+        "3-ba",
+        "page-footer-ex"
+    ],
+    "pluginsConfig": {
+        "disqus": {
+            "shortName": "python"
+        },
+        "theme-default": {
+            "showLevel": false
+        },
+        "sectionx": {
+            "tag": "b"
+        },
+        "3-ba": {
+            "token": "a08a3efcc0cfb2ed829309377e5dd3f8"
+        },
+        "anchor-navigation-ex": {
+            "isRewritePageTitle": true,
+            "isShowTocTitleIcon": true,
+            "tocLevel1Icon": "fa fa-hand-o-right",
+            "tocLevel2Icon": "fa fa-hand-o-right",
+            "tocLevel3Icon": "fa fa-hand-o-right"
+        },
+        "page-footer-ex": {
+            "copyright":"imwyw qq:415638908",
+            "update_label":"modified at:",
+            "update_format":"YYYY-MM-DD"
+        }
+    }
+}
