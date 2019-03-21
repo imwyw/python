@@ -15,6 +15,7 @@
         - [模块](#模块)
         - [连接](#连接)
         - [获取内容](#获取内容)
+    - [豆瓣电影top250示例](#豆瓣电影top250示例)
 
 <!-- /TOC -->
 
@@ -283,7 +284,110 @@ conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=192.168.1.
 
 <a id="markdown-获取内容" name="获取内容"></a>
 ### 获取内容
+获取单行内容：
+```py
+import pyodbc
 
+conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=.;DATABASE=db_movie;UID=sa;PWD=123456')
+
+#连接之后需要先建立cursor游标：
+cursor = conn.cursor()
+
+#使用 execute 方法运行SQL语句：
+cursor.execute('select id, name from t_user')
+
+#fetchone()方法 获取一行记录
+row = cursor.fetchone()
+if row:
+    print(row)
+    print('name-' + row[1])
+
+row = cursor.fetchone()
+if row:
+    print(row)
+    print('name-' + row.name)
+```
+
+一次获取所有记录：
+```py
+import pyodbc
+
+conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=.;DATABASE=db_movie;UID=sa;PWD=123456')
+
+# 连接之后需要先建立cursor游标：
+cursor = conn.cursor()
+
+# 使用fetchall()直接获取所有execute结果作为一个list：
+cursor.execute('select id, name from t_user')
+userList = cursor.fetchall()
+print('遍历所有结果：')
+for user in userList:
+    print(user)
+```
+
+<a id="markdown-豆瓣电影top250示例" name="豆瓣电影top250示例"></a>
+## 豆瓣电影top250示例
+```py
+import urllib.request
+from bs4 import BeautifulSoup
+import pyodbc
+
+# 数据库连接配置
+conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=.;DATABASE=db_movie;UID=sa;PWD=123456')
+# 连接之后需要先建立cursor：
+cursor = conn.cursor()
+
+
+# 插入写库操作
+def insert(name_list, rating_list):
+    if len(name_list) != len(rating_list):
+        return False
+    for ind, ite in enumerate(name_list):
+        # print("insert into t_movie (name,rating) values ('{name}','{rating}')".format(name=name_list[ind], rating=rating_list[ind]))
+        cursor.execute('insert into t_movie (name,rating) values (?,?)', name_list[ind], rating_list[ind])
+
+    cursor.commit()
+
+
+# 按照url匹配
+def find_movies(url):
+    _name_list = []
+    _rating_list = []
+    response = urllib.request.urlopen('https://movie.douban.com/top250')
+    html = response.read()
+    # lxml指lxml HTML 解析器
+    soup = BeautifulSoup(html, 'lxml')
+    # 筛选所有 样式为item的div标签
+    movieItems = soup.find_all('div', {'class': 'item'})
+    # 遍历筛选得到的movies
+    for htmlDiv in movieItems:
+        html_title = htmlDiv.find('span', 'title')
+        html_rating = htmlDiv.find('span', 'rating_num')
+        _name_list.append(html_title.get_text())  # 添加电影名称至列表
+        _rating_list.append(html_rating.get_text())  # 添加电影评分至列表
+    insert(_name_list, _rating_list)
+    return
+
+
+# 主执行程序
+# top25，最后一页从225开始
+max = 225
+# 每页25条记录
+step = 25
+# 当前起始记录
+current = 0
+url = 'https://movie.douban.com/top250?start='
+while current < 250:
+    find_movies(url + str(current))
+    current += step
+print('已完成top250电影导入')
+
+cursor.execute('select * from t_movie')
+for mov in cursor:
+    print(mov)
+
+cursor.close()
+```
 
 
 
@@ -298,3 +402,5 @@ conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=192.168.1.
 [Python 3 教程](http://www.runoob.com/python3/python3-tutorial.html)
 
 [Python连接SQL Server入门](https://blog.csdn.net/chroming/article/details/51541959)
+
+[Python使用pyodbc访问数据库操作方法详解](https://www.jb51.net/article/143212.htm)
