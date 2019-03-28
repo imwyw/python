@@ -353,7 +353,7 @@ def insert(name_list, rating_list):
 def find_movies(url):
     _name_list = []
     _rating_list = []
-    response = urllib.request.urlopen('https://movie.douban.com/top250')
+    response = urllib.request.urlopen(url)
     html = response.read()
     # lxml指lxml HTML 解析器
     soup = BeautifulSoup(html, 'lxml')
