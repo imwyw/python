@@ -8,5 +8,8 @@
 
 * [应用]()
     * [爬虫](./应用/Spider.md)
+    * [Flask](./应用/Flask.md)
+    * [MySql](./应用/PyMySql.md)
+
 
     

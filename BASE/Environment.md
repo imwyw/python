@@ -3,6 +3,8 @@
 - [环境及配置](#环境及配置)
     - [Anaconda](#anaconda)
     - [pycharm](#pycharm)
+    - [其他](#其他)
+        - [PermissionError](#permissionerror)
 
 <!-- /TOC -->
 
@@ -46,3 +48,14 @@ PyCharm是一种Python IDE，带有一整套可以帮助用户在使用Python语
 hello python
 
 ![](../assets/Environment/pycharm-hello.png)
+
+
+<a id="markdown-其他" name="其他"></a>
+## 其他
+
+<a id="markdown-permissionerror" name="permissionerror"></a>
+### PermissionError
+pip或者interpreter安装包时发生错误：
+
+`PermissionError: [Errno 13] Permission denied: 'C:\\ProgramData\\Anaconda3\\pkgs\\cache\\2116b818.json'`
+
