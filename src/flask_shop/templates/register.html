@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登陆/注册</title>
+</head>
+<body>
+
+    <div style="border:2px solid red;width:1000px;height:600px;margin:0px auto;">
+        <fieldset style="width:500px">
+            <legend>注册新用户</legend>
+        <form action="/register" method="post">
+            <table>
+                <tr>
+                    <td>用户名：</td>
+                    <td><input type="text" name="myName" value="admin" readonly /></td>
+                </tr>
+                <tr>
+                    <td>密码：</td>
+                    <td><input type="password" name="myPsd" /></td>
+                </tr>
+                <tr>
+                    <td>国籍：</td>
+                    <td>
+                        <select name="country">
+                            <option value="china" >中国</option>
+                            <option value="koera" >韩国</option>
+                            <option value="england" selected >英国</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>性别：</td>
+                    <td>
+                        <label for="rd1">男</label><input type="radio" name="sex" id="rd1" value="male" checked >
+                        <label for="rd2">女</label><input type="radio" name="sex" id="rd2"  value="female" >
+                        <label for="rd3">未知</label><input type="radio" name="sex" id="rd3"  value="unknow" >
+
+                    </td>
+                </tr>
+                <tr>
+                    <td>爱好：</td>
+                    <td>
+                        体育<input type="checkbox" name="like" value="PE" />
+                        音乐<input type="checkbox" name="like" value="music" checked/>
+
+                    </td>
+                </tr>
+
+            </table>
+
+            <input type="submit" value="注册" />
+            <input type="reset" value="reset" />
+            <font color="red">{{ msg }}</font>
+        </form>
+    </fieldset>
+
+    </div>
+
+</body>
+</html>

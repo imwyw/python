@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+        <style>
+        #main{
+            width:1350px;
+            #height:900px;
+            border:1px red solid;
+            margin:0px auto;
+        }
+        #banner{
+            width:1350px;
+            height:120px;
+            border:1px green solid;
+        }
+        .goods{
+            width:247px;
+            height:280px;
+            border:1px red solid;
+            float:left;
+            margin-right:20px;
+            margin-bottom:20px;
+        }
+        #foot{
+            width:1350px;
+            height:50px;
+            border:2px black solid;
+            float:left
+        }
+        a{
+            text-decoration:none;
+        }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <div  id="banner">
+            <img src="/static/images/banner.jpg" />
+            <a href="/login">登陆/注册</a>
+        </div>
+
+        {% block content  %}
+        {% endblock %}
+
+        <div id="foot">
+            <center>此处为foot</center>
+        </div>
+    </div>
+</body>
+</html>

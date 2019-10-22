@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="width:1348px;height:50px;border:1px blue solid;">
+    <center>此处为菜单</center>
+</div>
+
+<div style="width:1345px;border:1px black solid;float:left;padding-left:5px;">
+    {% for good in goods %}
+        <div class="goods">
+            <a href="/content/{{ good[0] }}">
+                <img src="{{ good[3] }}" width="200px" height="180px" />
+                <br/>
+                {{ good[1] }}
+                <br/>
+                {{ good[2] }}
+            </a>
+        </div>
+    {% endfor %}
+
+</div>
+{% endblock %}
+
+
+
+
+

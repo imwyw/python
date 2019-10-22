@@ -1,0 +1,10 @@
+第一次直播：
+1.安装Anaconda和PyCharm
+2.使用pip install flask安装flask框架
+
+
+第二次直播：
+1.安装MySQL数据库
+2.安装Navicat数据库可视化工具
+3.新建数据库shopping以及两个表goods（商品 表）和login（用户表）
+3.使用pip install mysqlclient安装Python的mysql库
