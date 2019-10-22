@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-        <style>
+    <style>
         #main{
             width:1350px;
             #height:900px;
@@ -32,21 +32,22 @@
         a{
             text-decoration:none;
         }
+
     </style>
 </head>
 <body>
-    <div id="main">
-        <div  id="banner">
-            <img src="/static/images/banner.jpg" />
-            <a href="/login">登陆/注册</a>
-        </div>
-
-        {% block content  %}
-        {% endblock %}
-
-        <div id="foot">
-            <center>此处为foot</center>
-        </div>
+<div id="main">
+    <div id="banner">
+        <img src="/static/images/banner.jpg"/>
+        <a href="/login">登陆/注册</a>
     </div>
+
+    {% block content %}
+    {% endblock %}
+
+    <div id="foot">
+        <center>此处为foot</center>
+    </div>
+</div>
 </body>
 </html>

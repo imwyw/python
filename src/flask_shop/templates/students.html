@@ -8,22 +8,27 @@
         border:1px red solid;
         }
 
+
     </style>
 </head>
 <body>
- <h1>欢迎光临，{{ name }}</h1>
+<h1>欢迎光临，{{ name }}</h1>
 
 <table cellspacing="0" width="250">
     <tr>
-        <th>姓名</th><th>年龄</th><th>籍贯</th>
+        <th>姓名</th>
+        <th>年龄</th>
+        <th>籍贯</th>
     </tr>
 
     {% for student in students %}
-        {% if student.age >=20  %}
-            <tr>
-                <td>{{ student.name }}</td><td>{{ student.age }}</td><td>{{ student.jiguan }}</td>
-            </tr>
-        {% endif %}
+    {% if student.age >=20 %}
+    <tr>
+        <td>{{ student.name }}</td>
+        <td>{{ student.age }}</td>
+        <td>{{ student.jiguan }}</td>
+    </tr>
+    {% endif %}
     {% endfor %}
 
 </table>
