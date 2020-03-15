@@ -2,6 +2,7 @@
 
 - [环境及配置](#环境及配置)
     - [Anaconda](#anaconda)
+        - [环境变量](#环境变量)
     - [pycharm](#pycharm)
     - [其他](#其他)
         - [PermissionError](#permissionerror)
@@ -31,6 +32,15 @@ Anaconda指的是一个开源的Python发行版本，其包含了conda、Python�
 
 历史版本-清华镜像
 > https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/
+
+<a id="markdown-环境变量" name="环境变量"></a>
+### 环境变量
+
+Windows下anaconda3的安装非常简单，但是如果 anaconda 没有写入环境变量路径，就会导致我们在命令行中输入诸如 conda list 之类的命令时会报错。
+
+这就需要我们手动设置【系统环境变量 】，【此电脑】-【属性】-【高级系统设置】-【环境变量】-【系统变量】-【Path】编辑
+
+![](../assets/Environment/系统环境变量.png)
 
 
 <a id="markdown-pycharm" name="pycharm"></a>
