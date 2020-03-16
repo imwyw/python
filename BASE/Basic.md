@@ -19,6 +19,14 @@
         - [定义函数](#定义函数)
         - [空函数](#空函数)
         - [返回多个值](#返回多个值)
+    - [循环](#循环)
+        - [while](#while)
+        - [for](#for)
+        - [break和continue](#break和continue)
+        - [range() 函数](#range-函数)
+    - [遍历](#遍历)
+        - [list遍历](#list遍历)
+        - [字典遍历](#字典遍历)
 
 <!-- /TOC -->
 
@@ -487,40 +495,171 @@ print(get_full_name()[1])
 * 函数执行完毕也没有return语句时，自动return None。
 * 函数可以同时返回多个值，但其实就是一个tuple。
 
+<a id="markdown-循环" name="循环"></a>
+## 循环
 
+<a id="markdown-while" name="while"></a>
+### while
 
+`while` 循环输出0-9：
 
+```py
+a = 0
+while a < 10:
+    print(a)
+    a += 1
+```
 
+while 循环使用 else 语句
 
+在 while … else 在条件语句为 false 时执行 else 的语句块：
+```py
+a = 0
+while a < 10:
+    print(a)
+    a += 1
+else:
+    print('!!! 循环结束 a 的值为：' + str(a))
+```
 
+```py
+#死循环
+while 1:
+    print('hi')
+```
 
+同样需要注意冒号和缩进。另外，在 Python 中没有 do..while 循环。
 
+<a id="markdown-for" name="for"></a>
+### for
+列表 list 的遍历：
+```py
+names = ['jack', 'lucy', 'smith', 'tony']
+for t in names:
+    print(t)
+```
 
+同样的，for..else的用法：
+```py
+names = ['jack', 'lucy', 'smith', 'tony']
+for t in names:
+    print(t)
+else:
+    print('list已遍历完成！')
+```
 
+<a id="markdown-break和continue" name="break和continue"></a>
+### break和continue
 
+break 语句可以跳出 for 和 while 的循环体。如果你从 for 或 while 循环中终止，任何对应的循环 else 块将不执行。
 
+continue 语句被用来告诉 Python 跳过当前循环块中的剩余语句，然后继续进行下一轮循环。
 
+```py
+n = 5
+while n > 0:
+    n -= 1
+    if n == 2:
+        break
+    print(n)
+print('循环结束。')
+```
 
+```py
+n = 5
+while n > 0:
+    n -= 1
+    if n == 2:
+        continue
+    print(n)
+print('循环结束。')
+```
 
+<a id="markdown-range-函数" name="range-函数"></a>
+### range() 函数
+如果你需要遍历数字序列，可以使用内置range()函数。它会生成数列，例如:
 
+```py
+#输出 0-4
+for t in range(5):
+    print(t)
 
+#输出 10-14
+for t in range(10, 15):
+    print(t)
+```
 
+<a id="markdown-遍历" name="遍历"></a>
+## 遍历
 
+<a id="markdown-list遍历" name="list遍历"></a>
+### list遍历
 
+最简单的 `for...in` 遍历元素，打印输出索引和元素本身：
 
+```py
+names = ['jack', 'lucy', 'smith', 'tony']
+for t in names:
+    index = names.index(t)
+    print('index is : {ind} ,element is : {val}'.format(ind=index, val=t))
+```
 
+通过 range() 方式快速遍历：
+```py
+names = ['jack', 'lucy', 'smith', 'tony']
+for ind in range(len(names)):
+    print('index is : {ind},element is :{val}'.format(ind=ind, val=names[ind]))
+```
 
+通过 `enumerate()` 函数将可遍历的数据组合成索引序列：
+```py
+names = ['jack', 'lucy', 'smith', 'tony']
+for i, v in enumerate(names):
+    print('{ind} and {val}'.format(ind=i, val=v))
+```
 
+<a id="markdown-字典遍历" name="字典遍历"></a>
+### 字典遍历
 
+遍历字典的key值：
+```py
+someone = {'name': 'jack', 'age': 12, 'location': '芜湖'}
+for k in someone:
+    print('key:{key},value:{val}'.format(key=k, val=someone[k]))
+```
+其实，上述 `for k in someone` 也可以换成 `for k in someone.key()`，二者是等价的
 
+遍历字典的value值：
+```py
+for v in someone.values():
+    print('value:{val}'.format(val=v))
+```
 
+遍历字典项， `items` 每项是 `tuple`
+```py
+for it in someone.items():
+    print(it)
+```
 
+更加快捷的方式：
+```py
+for k, v in someone.items():
+    print('{key}-{val}'.format(key=k, val=v))
+```
 
+列表字典组合的遍历：
+```py
+students = [
+    {'name': 'jack', 'age': 12, 'location': '芜湖'},
+    {'name': 'lucy', 'age': 14, 'location': '合肥'},
+    {'name': 'smith', 'age': 22, 'location': '滁州'},
+]
 
-
-
-
-
+for t in students:
+    print('第{number}个元素：'.format(number=students.index(t)))
+    for k, v in t.items():
+        print('{key}--{val}'.format(key=k, val=v))
+```
 
 
 
