@@ -27,6 +27,9 @@
     - [遍历](#遍历)
         - [list遍历](#list遍历)
         - [字典遍历](#字典遍历)
+    - [模块](#模块)
+        - [import](#import)
+        - [from…import 语句](#fromimport-语句)
 
 <!-- /TOC -->
 
@@ -661,6 +664,68 @@ for t in students:
         print('{key}--{val}'.format(key=k, val=v))
 ```
 
+<a id="markdown-模块" name="模块"></a>
+## 模块
+Python 模块(Module)，是一个 Python 文件，以 .py 结尾，包含了 Python 对象定义和Python语句。
+
+模块让你能够有逻辑地组织你的 Python 代码段。
+
+<a id="markdown-import" name="import"></a>
+### import
+import 模块名1 [as 别名1], 模块名2 [as 别名2]，…：
+
+使用这种语法格式的 import 语句，会导入指定模块中的所有成员（包括变量、函数、类等）。
+
+不仅如此，当需要使用模块中的成员时，需用该模块名（或别名）作为前缀，否则 Python 解释器会报错。
+
+support.py 模块：
+```py
+def say_hello(name):
+    print('你好 {name}'.format(name=name))
+```
+
+新建 run.py 文件：
+```py
+import support
+
+hi = support.say_hello
+
+hi('jack')
+```
+
+或者使用别名：
+```py
+import support as supp
+
+hi = supp.say_hello
+
+hi('jack')
+```
+
+一个模块只会被导入一次，不管你执行了多少次import。这样可以防止导入模块被一遍又一遍地执行。
+
+<a id="markdown-fromimport-语句" name="fromimport-语句"></a>
+### from…import 语句
+
+`from  模块名 import 成员名 as 别名`
+
+```py
+# 导入sys模块的argv成员
+from sys import argv
+# 使用导入成员的语法，直接使用成员名访问
+print(argv[0])
+```
+
+对于自定义的模块，还可以这样使用：
+```py
+from my_lib.test.support import say_hello as self_say
+
+self_say('jack')
+```
+
+项目结构如下所示：
+
+![](../assets/Basic/from_import.png)
 
 
 ---
