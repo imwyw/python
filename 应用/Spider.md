@@ -305,7 +305,15 @@ pyodbc模块是用于odbc数据库（一种数据库通用接口标准）的连�
 对于SQL server写法如下：
 
 ```py
-conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=192.168.1.1,3433;DATABASE=test;UID=user;PWD=password')
+
+conn = pyodbc.connect('''
+DRIVER={SQL Server Native Client 11.0};
+SERVER=.;
+DATABASE=db_name;
+UID=xxx;
+PWD=xxxxxx;
+''')
+
 ```
 
 其中3433为端口号，如果默认为1433则可以省略
@@ -324,7 +332,13 @@ conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=192.168.1.
 ```py
 import pyodbc
 
-conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=.;DATABASE=db_movie;UID=sa;PWD=123456')
+conn = pyodbc.connect('''
+DRIVER={SQL Server Native Client 11.0};
+SERVER=.;
+DATABASE=db_movie;
+UID=sa;
+PWD=123456;
+''')
 
 #连接之后需要先建立cursor游标：
 cursor = conn.cursor()
@@ -349,7 +363,13 @@ if row:
 ```py
 import pyodbc
 
-conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=.;DATABASE=db_movie;UID=sa;PWD=123456')
+conn = pyodbc.connect('''
+DRIVER={SQL Server Native Client 11.0};
+SERVER=.;
+DATABASE=db_movie;
+UID=sa;
+PWD=123456;
+''')
 
 #连接之后需要先建立cursor游标：
 cursor = conn.cursor()
@@ -371,7 +391,13 @@ from bs4 import BeautifulSoup
 import pyodbc
 
 # 数据库连接配置
-conn = pyodbc.connect(r'DRIVER={SQL Server Native Client 11.0};SERVER=.;DATABASE=db_movie;UID=sa;PWD=123456')
+conn = pyodbc.connect('''
+DRIVER={SQL Server Native Client 11.0};
+SERVER=.;
+DATABASE=db_movie;
+UID=sa;
+PWD=123456;
+''')
 # 连接之后需要先建立cursor：
 cursor = conn.cursor()
 
