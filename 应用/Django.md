@@ -11,6 +11,9 @@
         - [应用下的render](#应用下的render)
     - [Models模块](#models模块)
         - [数据的呈现](#数据的呈现)
+    - [Admin](#admin)
+        - [创建用户](#创建用户)
+        - [配置models](#配置models)
 
 <!-- /TOC -->
 
@@ -331,6 +334,95 @@ def main(request):
 </body>
 </html>
 ```
+
+
+<a id="markdown-admin" name="admin"></a>
+## Admin
+Admin 是 Django 自带的一个功能强大的自动化数据管理界面
+
+被授权的用户可以直接在 Admin 中管理数据库
+
+Django 提供了许多针对Admin的定制功能
+
+<a id="markdown-创建用户" name="创建用户"></a>
+### 创建用户
+创建用户 `python manage.py createsuperuser` 创建超级用户
+
+```bash
+(C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py createsuperuser
+Username (leave blank to use 'now_w'): admin
+Email address: abc@python.com
+Password:
+Password (again):
+Superuser created successfully.
+
+```
+
+密码不能太简单，不少于8个字符，推荐使用简单好记密码 `Admin@123`
+
+管理页面入口 `localhost:端口号/admin` ，就像配置路由器一样
+
+切换中文版显示，修改 【settings.py】文件中 `LANGUAGE_CODE='zh_Hans'`
+
+<a id="markdown-配置models" name="配置models"></a>
+### 配置models
+
+在应用下【admin.py】中引入自身的models模块，使用 `admin.site.register()` 注册模块即可
+
+修改【blog/admin.py】文件
+
+```py
+from django.contrib import admin
+from . import models
+
+# Register your models here.
+# 注册Article，使用Admin管理Article数据
+admin.site.register(models.Article)
+```
+
+以上，便可以通过 Admin 模块对应用下创建的数据进行简单的增删改查。
+
+如要切换 Admin 界面显示标题，可以修改 【blog/models.py】，增加 `def __str__(self)`
+
+```py
+from django.db import models
+
+# Create your models here.
+class Article(models.Model):
+    title = models.CharField(max_length=32, default='标题')
+    content = models.TextField()
+
+    def __str__(self):
+        return self.title
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
