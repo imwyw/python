@@ -10,6 +10,7 @@
     * [爬虫](./应用/Spider.md)
     * [Flask](./应用/Flask.md)
     * [MySql](./应用/PyMySql.md)
+    * [Django](./应用/Django.md)
+    * [Scrapy](./应用/Scrapy.md)
 
 
-    
