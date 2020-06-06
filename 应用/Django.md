@@ -3,12 +3,14 @@
 - [Django](#django)
     - [概要和环境](#概要和环境)
         - [第一个页面](#第一个页面)
-    - [模板Templates](#模板templates)
-        - [render](#render)
-    - [Models模块](#models模块)
     - [应用模块](#应用模块)
         - [应用目录结构](#应用目录结构)
         - [应用页面和url](#应用页面和url)
+    - [模板Templates](#模板templates)
+        - [render](#render)
+        - [应用下的render](#应用下的render)
+    - [Models模块](#models模块)
+        - [数据的呈现](#数据的呈现)
 
 <!-- /TOC -->
 
@@ -80,52 +82,6 @@ urlpatterns = [
 
 在浏览器中访问url即可： http://127.0.0.1:5000/index/  或者 http://localhost:5000/index/
 
-<a id="markdown-模板templates" name="模板templates"></a>
-## 模板Templates
-- HTML文件，DTL（Django Template Language）模板语言
-- 
-
-<a id="markdown-render" name="render"></a>
-### render
-在【Templates】目录中创建HTML文件，在【views.py】处理请求方法中返回 `render()` 
-
-【templates/index.html】
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>hello index page</title>
-</head>
-<body>
-<h1>hello django main page  {{ site_name }}</h1>
-
-</body>
-</html>
-```
-
-修改【项目名称/views.py】中请求处理：
-
-```py
-from django.shortcuts import render
-from django.http import HttpResponse
-
-
-def index(request):
-    # 第一个参数是 请求上下文对象，第二个是静态文件，第三个是字典值 传参
-    return render(request, 'index.html', {'site_name': '知乎'})
-```
-
-<a id="markdown-models模块" name="models模块"></a>
-## Models模块
-通常，一个 Model 对应数据库的一张数据表
-
-Django 中 Models 以`类`的形式出现，包含了基本字段和数据的行为。
-
-ORM，对象关系映射 Object Relation Mapping，实现了对象和数据库的映射。
-
-项目文件夹内创建 【models.py】，继承 `models.Model`
 
 <a id="markdown-应用模块" name="应用模块"></a>
 ## 应用模块
@@ -205,6 +161,176 @@ urlpatterns = [
 ]
 ```
 
+<a id="markdown-模板templates" name="模板templates"></a>
+## 模板Templates
+- HTML文件，DTL（Django Template Language）模板语言
+
+<a id="markdown-render" name="render"></a>
+### render
+在【Templates】目录中创建HTML文件，在【views.py】处理请求方法中返回 `render()` 
+
+【templates/index.html】
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>hello index page</title>
+</head>
+<body>
+<h1>hello django main page  {{ site_name }}</h1>
+
+</body>
+</html>
+```
+
+修改【项目名称/views.py】中请求处理：
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+
+
+def index(request):
+    # 第一个参数是 请求上下文对象，第二个是静态文件，第三个是字典值 传参
+    return render(request, 'index.html', {'site_name': '知乎'})
+```
+
+<a id="markdown-应用下的render" name="应用下的render"></a>
+### 应用下的render
+
+前面创建 blog 应用，也可以渲染静态页面，创建应用 blog 对应【templates/blog】文件夹，在该文件夹中新建HTML
+
+【templates/blog/main.html】
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>hello blog main</title>
+</head>
+<body>
+<h1>博客主页-- {{ site_name }}</h1>
+
+</body>
+</html>
+```
+
+修改 【blog/views.py】 中请求处理方法如下：
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+
+
+# Create your views here.
+
+def main(request):
+    return render(request, 'blog/main.html', {'site_name': '博客园'})
+```
+
+
+<a id="markdown-models模块" name="models模块"></a>
+## Models模块
+通常，一个 Model 对应数据库的一张数据表
+
+Django 中 Models 以`类`的形式出现，包含了基本字段和数据的行为。
+
+ORM，对象关系映射 Object Relation Mapping，实现了对象和数据库的映射。
+
+在应用 blog 文件夹内 【models.py】用于描述实体信息，继承 `models.Model` ，代码如下：
+
+```py
+from django.db import models
+
+# Create your models here.
+class Article(models.Model):
+    title = models.CharField(max_length=32, default='标题')
+    content = models.TextField()
+```
+
+如上，定义了一个文章类，通过命令 `python manage.py makemigrations app名（可选）`
+
+```bash
+(C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py makemigrations
+Migrations for 'blog':
+  blog\migrations\0001_initial.py
+    - Create model Article
+
+```
+
+再执行命令 `python manage.py migrate`
+
+```bash
+(C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, blog, contenttypes, sessions
+Running migrations:
+  Applying blog.0001_initial... OK
+
+```
+
+Django 会在 【blog/migrations】 目录下生成移植文件，如 【0001_initial.py】
+
+执行 `python manage.py sqlmigrate 应用名称 文件id` 查看对应SQL语句
+
+```py
+(C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py sqlmigrate blog 0001
+BEGIN;
+--
+-- Create model Article
+--
+CREATE TABLE "blog_article" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "title" varchar(32) NOT NULL, "content" text NOT NULL);
+COMMIT;
+
+```
+
+默认 sqlite3 的数据库在项目根目录下 【db.sqlite3】
+
+可以使用 Navicat 或者 SqliteExpertPersonal 工具打开管理数据库文件。
+
+
+<a id="markdown-数据的呈现" name="数据的呈现"></a>
+### 数据的呈现
+
+【blog/views.py】中 `import models`
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+from . import models
+
+
+# Create your views here.
+
+def main(request):
+    # 根据主键信息查询对象，也可以根据字段 title或者content获取 
+    # models.Article.objects.get(title='xxx')
+    article = models.Article.objects.get(pk=1)
+    return render(request, 'blog/main.html', {'article': article})
+```
+
+前端HTML页面的调整，【blog/main.html】
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>hello blog main</title>
+</head>
+<body>
+<h1>博客主页-- 知乎</h1>
+<hr>
+
+<h3>{{ article.title }}</h3>
+<h3>{{ article.content }}</h3>
+
+</body>
+</html>
+```
 
 
 
@@ -215,8 +341,8 @@ urlpatterns = [
 
 
 
+----
 
 
-
-
+https://blog.csdn.net/weixin_42134789/article/details/80276855
 
