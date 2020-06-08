@@ -56,6 +56,10 @@ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/f
 conda config --set show_channel_urls yes
 ```
 
+参考引用：
+
+> https://blog.csdn.net/wsjzzcbq/article/details/101052960
+
 <a id="markdown-pycharm" name="pycharm"></a>
 ## pycharm
 PyCharm是一种Python IDE，带有一整套可以帮助用户在使用Python语言开发时提高其效率的工具，
