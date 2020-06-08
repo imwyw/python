@@ -14,6 +14,11 @@
     - [Admin](#admin)
         - [创建用户](#创建用户)
         - [配置models](#配置models)
+    - [博客设计](#博客设计)
+        - [博客主页](#博客主页)
+        - [博客详情](#博客详情)
+        - [链接跳转](#链接跳转)
+        - [发表博客](#发表博客)
 
 <!-- /TOC -->
 
@@ -364,6 +369,8 @@ Superuser created successfully.
 
 切换中文版显示，修改 【settings.py】文件中 `LANGUAGE_CODE='zh_Hans'`
 
+注意，Django-2.0+版本的配置有调整： `LANGUATE_CODE='zh-hans'`
+
 <a id="markdown-配置models" name="配置models"></a>
 ### 配置models
 
@@ -396,33 +403,199 @@ class Article(models.Model):
         return self.title
 ```
 
+<a id="markdown-博客设计" name="博客设计"></a>
+## 博客设计
+
+* 博客主页页面，标题（超链接）列表，发表博客按钮
+* 博客内容页面
+* 编辑博客页面
+
+<a id="markdown-博客主页" name="博客主页"></a>
+### 博客主页
+设计思路：
+
+1. 取出数据库中所有文章对象
+2. 将文章对象打包成列表，传递到前端
+3. 前端页面显示所有文章（超链接显示标题）
+
+修改应用 blog 处理请求代码【blog/views.py】：
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+from . import models
 
 
+# Create your views here.
+
+# 博客主页
+def main(request):
+    # 获取所有数据信息，返回列表
+    articles = models.Article.objects.all()
+    return render(request, 'blog/main.html', {'articles': articles})
+```
+
+修改对应的HTML模板页面【templates/blog/main.html】
+
+```py
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>hello blog main</title>
+</head>
+<body>
+<h1>
+    <a href="">发表新文章</a>
+</h1>
+
+{% for article in articles %}
+    <h3><a href="">{{ article.title }}</a></h3>
+{% endfor %}
+
+</body>
+</html>
+```
+
+<a id="markdown-博客详情" name="博客详情"></a>
+### 博客详情
+
+新增一个请求处理方法，修改【blog/views.py】代码：
+
+```py
+from django.shortcuts import render
+from django.http import HttpResponse
+from . import models
 
 
+# Create your views here.
+
+# 博客主页
+def main(request):
+    articles = models.Article.objects.all()
+    return render(request, 'blog/main.html', {'articles': articles})
 
 
+# 博客详情界面
+def article_page(request, article_id):
+    article = models.Article.objects.get(pk=article_id)
+    return render(request, 'blog/article_page.html', {'article': article})
+```
 
+创建对应的前端 HTML 页面，新增【templates/blog/article_page.html】：
 
+```py
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>博客内容</title>
+</head>
+<body>
+<h1>{{ article.title }}</h1>
+<hr>
+<h3>{{ article.content }}</h3>
+<br><br>
 
+<a href="">保存</a>
+</body>
+</html>
+```
 
+增加 url 配置，修改【blog/urls.py】文件：
 
+```py
+from django.conf.urls import url
+from django.contrib import admin
 
+# 引入当前目录文件
+from . import views
 
+# 用法有点类似于 Vue 的嵌套路由
+urlpatterns = [
+    url(r'^index/$', views.main),
+    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page),# P<article_id>[0-9]+ 正则匹配数字
+]
+```
 
+通过正则匹配参数（此处方式比较老旧，基于 `Django-1.11` 版本，新版本使用 `Path` 方法要方便很多）
 
+测试访问，最后 1 为传参，在请求方法 `def article_page(request, article_id):` 方法中根据 `article_id` 获取对应对象信息：
 
+> localhost:5000/blog/article/1
 
+<a id="markdown-链接跳转" name="链接跳转"></a>
+### 链接跳转
 
+template 中DTL可以使用 `{% url 'app_name:url_name' param %}`
 
+`app_name` 和 `url_name` 都是在 【urls.py】中配置
 
+`app_name` 是应用名称，在根urls中通过 `include` 配置的命名空间 `namespace`
 
+`url_name` 是应用中urls配置的名称
 
+配置根urls 【项目名称/urls.py】：
 
+```py
+from django.conf.urls import url, include
+from django.contrib import admin
 
+# 引入当前目录文件
+from . import views
 
+urlpatterns = [
+    url(r'^admin/', admin.site.urls),
+    url(r'^index/', views.index),
+    url(r'^blog/', include(('blog.urls', 'blog'), namespace='blog'))
+]
+```
 
+增加了 `namespace` `的配置，include` 第一个参数为元组，配置应用 `urls` 和 `app_name` 
 
+配置应用下的urls，【blog/urls.py】：
+
+```py
+from django.conf.urls import url
+from django.contrib import admin
+
+# 引入当前目录文件
+from . import views
+
+# 用法有点类似于 Vue 的嵌套路由
+urlpatterns = [
+    url(r'^index/$', views.main),
+    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page, name='article_page'),  # P<article_id>[0-9]+ 正则匹配数字
+]
+```
+
+设置前端HTML页面，【templates/blog/main.html】
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>hello blog main</title>
+</head>
+<body>
+<h1>
+    <a href="">发表新文章</a>
+</h1>
+
+<hr>
+{% for article in articles %}
+    <h3>
+        <a href="{% url 'blog:article_page' article.id %}">{{ article.title }}</a>
+    </h3>
+{% endfor %}
+
+</body>
+</html>
+```
+
+<a id="markdown-发表博客" name="发表博客"></a>
+### 发表博客
 
 
 
