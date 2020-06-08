@@ -3,6 +3,7 @@
 - [环境及配置](#环境及配置)
     - [Anaconda](#anaconda)
         - [环境变量](#环境变量)
+        - [Channels源设置](#channels源设置)
     - [pycharm](#pycharm)
     - [其他](#其他)
         - [PermissionError](#permissionerror)
@@ -42,6 +43,18 @@ Windows下anaconda3的安装非常简单，但是如果 anaconda 没有写入环
 
 ![](../assets/Environment/系统环境变量.png)
 
+<a id="markdown-channels源设置" name="channels源设置"></a>
+### Channels源设置
+Anaconda 默认从国外镜像源下载，而从国外下载速度极慢，容易导致报错。
+
+清华大学经与 Anaconda, Inc. 沟通，获得了镜像的授权，因此我们又能使用清华大学的镜像了。
+
+```bash
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/msys2/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+conda config --set show_channel_urls yes
+```
 
 <a id="markdown-pycharm" name="pycharm"></a>
 ## pycharm
