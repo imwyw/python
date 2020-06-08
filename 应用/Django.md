@@ -597,6 +597,80 @@ urlpatterns = [
 <a id="markdown-发表博客" name="发表博客"></a>
 ### 发表博客
 
+* 标题和内容输入
+* 提交按钮
+* 后端获取数据并保存数据库
+
+新增编辑的页面，需要包含标题和内容等博客信息，创建HTML文件【templates/blog/edit_article.html】:
+
+```py
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>发表帖子</title>
+</head>
+<body>
+<form action="{% url 'blog:save_article' %}" method="post">
+    {% csrf_token %}
+    <fieldset>
+        <label for="">文章标题</label>
+        <input type="text" name="title"/>
+    </fieldset>
+    <fieldset>
+        <label for="">文章内容</label>
+        <input type="text" name="content">
+    </fieldset>
+    <fieldset>
+        <input type="submit" value="提交">
+    </fieldset>
+</form>
+</body>
+</html>
+```
+
+`form` 表单的 `action` 属性设置了对应的处理方法，对应到应用中【views.py】处理逻辑
+
+新增应用下处理请求的方法 `def edit_article(request)` 和 `def save_article(request)`，修改【blog/views.py】：
+
+```py
+# 编辑页面
+def edit_article(request):
+    return render(request, 'blog/edit_article.html')
+
+
+# 保存操作
+def save_article(request):
+    title = request.POST.get('title', 'TITLE')
+    content = request.POST.get('content', 'CONTENT')
+    models.Article.objects.create(title=title, content=content)
+    articles = models.Article.objects.all()
+    return render(request, 'blog/main.html', {'articles': articles})
+```
+
+在应用 urls 下增加配置，修改【blog/urls.py】：
+
+```py
+urlpatterns = [
+    url(r'^index/$', views.main),
+    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page, name='article_page'),  # P<article_id>[0-9]+ 正则匹配数字
+    url(r'^edit$', views.edit_article, name='edit_article'),
+    url(r'^save$', views.save_article, name='save_article')
+]
+```
+
+TODO，以上还有个bug，添加博客文章保存后刷新会重复添加数据
+
+
+
+
+
+
+
+
+
+
+
 
 
 
