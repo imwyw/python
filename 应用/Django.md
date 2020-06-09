@@ -22,6 +22,7 @@
         - [发表博客](#发表博客)
         - [修改博客](#修改博客)
         - [Templates过滤器](#templates过滤器)
+        - [Admin增强](#admin增强)
 
 <!-- /TOC -->
 
@@ -816,8 +817,51 @@ def edit_article(request, article_id):
 
 > https://www.liujiangblog.com/course/django/147
 
+<a id="markdown-admin增强" name="admin增强"></a>
+### Admin增强
+创建 admin配置类
+
+class ArticleAdmin(admin.ModelAdmin)
+
+显示其他字段， `list_display = ('title', 'content')`
+
+`list_display` 同时支持 元组tuple和列表list，但是元素内容必须是字符串
+
+修改应用下【blog/admin.py】
+
+```py
+from django.contrib import admin
+from . import models
 
 
+class ArticleAdmin(admin.ModelAdmin):
+    # 设置管理界面显示字段
+    list_display = ('title', 'content', 'pub_time')
+
+
+# Register your models here.
+
+# 注册Article，使用Admin管理Article数据
+admin.site.register(models.Article, ArticleAdmin)
+```
+
+使用 `makemigrations` 和 `migrate` 执行数据迁移更新：
+
+```bash
+(C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py makemigrations
+Migrations for 'blog':
+  blog\migrations\0002_article_pub_time.py
+    - Add field pub_time to article
+
+(C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, blog, contenttypes, sessions
+Running migrations:
+  Applying blog.0002_article_pub_time... OK
+
+```
+
+重新 runserver ，观察 admin 管理页面
 
 
 
