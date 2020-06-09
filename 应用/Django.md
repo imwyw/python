@@ -14,11 +14,13 @@
     - [Admin](#admin)
         - [创建用户](#创建用户)
         - [配置models](#配置models)
+    - [Django调试](#django调试)
     - [博客设计](#博客设计)
         - [博客主页](#博客主页)
         - [博客详情](#博客详情)
         - [链接跳转](#链接跳转)
         - [发表博客](#发表博客)
+        - [修改博客](#修改博客)
 
 <!-- /TOC -->
 
@@ -403,6 +405,23 @@ class Article(models.Model):
         return self.title
 ```
 
+<a id="markdown-django调试" name="django调试"></a>
+## Django调试
+
+用 `PyCharm` 开发 `django` 程序的时候，对于打印日志调试程序的方式感觉还是有点麻烦和不直观，在IDE中调试方法如下：
+
+* 打开你的工程，在菜单栏里找到Run-->Edit Configurations
+
+![](../assets/Django/DebugEditConfig.png)
+
+* 脚本选择你网站的manage.py，脚本参数用runserver，跟平常用命令行是一样的
+
+![](../assets/Django/DebugParameter.png)
+
+之后在菜单栏里找到 `Run-->Debug'debug'` ，运行后，你能在Console中看到服务器已经运行起来了，有日志打印
+
+然后就可以通过断点开始调试了。
+
 <a id="markdown-博客设计" name="博客设计"></a>
 ## 博客设计
 
@@ -497,7 +516,7 @@ def article_page(request, article_id):
 <h3>{{ article.content }}</h3>
 <br><br>
 
-<a href="">保存</a>
+<a href="">修改</a>
 </body>
 </html>
 ```
@@ -641,8 +660,9 @@ def edit_article(request):
 
 # 保存操作
 def save_article(request):
-    title = request.POST.get('title', 'TITLE')
-    content = request.POST.get('content', 'CONTENT')
+    # request.POST.get('key','defaultvalue') 获取前端表单post的值，如果没有则使用默认值
+    title = request.POST.get('title', '默认标题')
+    content = request.POST.get('content', '默认内容')
     models.Article.objects.create(title=title, content=content)
     articles = models.Article.objects.all()
     return render(request, 'blog/main.html', {'articles': articles})
@@ -661,9 +681,98 @@ urlpatterns = [
 
 TODO，以上还有个bug，添加博客文章保存后刷新会重复添加数据
 
+<a id="markdown-修改博客" name="修改博客"></a>
+### 修改博客
 
+考虑到修改页面和新增页面大部分都是重复的内容，我们需要复用页面。
 
+修改【templates/blog/edit_article.html】：
 
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>发表帖子</title>
+</head>
+<body>
+<form action="{% url 'blog:save_article' %}" method="post">
+    {% csrf_token %}
+    {% if article.id %}
+        <h1>更新博客</h1>
+    {% else %}
+        <h1>新增博客</h1>
+    {% endif %}
+
+    <input type="hidden" name="article_id" value="{{ article.id }}">
+    <fieldset>
+        <label for="">文章标题</label>
+        <input type="text" name="title" value="{{ article.title }}"/>
+    </fieldset>
+    <fieldset>
+        <label for="">文章内容</label>
+        <input type="text" name="content" value="{{ article.content }}">
+    </fieldset>
+    <fieldset>
+        <input type="submit" value="提交">
+    </fieldset>
+</form>
+</body>
+</html>
+```
+
+修改【blog/views.py】编辑页面方法 `def edit_article(request):`
+
+```py
+# 编辑页面
+def edit_article(request, article_id):
+    article = None
+    # 通过列表编辑进入
+    if str(article_id) != '0':
+        article = models.Article.objects.get(pk=article_id)
+    else:
+        article = {'id': 0}
+    
+    return render(request, 'blog/edit_article.html', {'article': article})
+```
+
+`edit_article` 方法区分新增还是修改的业务，通过判断请求的传参进行区分
+
+修改【blog/views.py】编辑页面方法 `def save_article(request):`
+
+```py
+# 保存操作
+def save_article(request):
+    # request.POST.get('key','defaultvalue') 获取前端表单post的值，如果没有则使用默认值
+    title = request.POST.get('title', '默认标题')
+    content = request.POST.get('content', '默认内容')
+    # 新增时，默认 article_id 是没有值的
+    article_id = request.POST.get('article_id', '0')
+
+    if article_id == '':  # 新增业务
+        models.Article.objects.create(title=title, content=content)
+    else:  # 更新业务
+        entity = models.Article.objects.get(pk=article_id)
+        entity.title = title
+        entity.content = content
+        entity.save()
+
+    articles = models.Article.objects.all()
+    return render(request, 'blog/main.html', {'articles': articles})
+```
+
+保存方法也需要针对新增和修改进行区分
+
+最后修改urls配置，edit入口复用新增和修改的业务，修改路由配置【blog/urls.py】：
+
+```py
+urlpatterns = [
+    url(r'^index/$', views.main),
+    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page, name='article_page'),  # P<article_id>[0-9]+ 正则匹配数字
+    url(r'^edit/(?P<article_id>[0-9]+)$', views.edit_article, name='edit_article'),
+    url(r'^save/$', views.save_article, name='save_article')
+]
+```
 
 
 
