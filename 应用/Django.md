@@ -21,6 +21,7 @@
         - [链接跳转](#链接跳转)
         - [发表博客](#发表博客)
         - [修改博客](#修改博客)
+        - [Templates过滤器](#templates过滤器)
 
 <!-- /TOC -->
 
@@ -774,8 +775,46 @@ urlpatterns = [
 ]
 ```
 
+<a id="markdown-templates过滤器" name="templates过滤器"></a>
+### Templates过滤器
+
+`{{ value | filter }}`
+
+为模版过滤器提供参数的方式是：过滤器后加个冒号，再紧跟参数，中间不能有空格！
 
 
+例如为变量提供一个默认值，当 `article.id` 为空的时候 取默认值 `value`
+
+`{{ article.id | default:'value' }}`
+
+博客案例新增业务，当判断为新增业务时，回传前端的对象id设置可以完全在前端处理
+
+注释掉【blog/views.py】 `edit_article` 方法中设置默认id部分
+
+```py
+# 编辑页面
+def edit_article(request, article_id):
+    article = None
+    # 通过列表编辑进入
+    if str(article_id) != '0':
+        article = models.Article.objects.get(pk=article_id)
+    # else:  # 新增业务时，需要标记对象id为0
+    #     article = {'id': 0}
+    return render(request, 'blog/edit_article.html', {'article': article})
+```
+
+并在前端页面通过 `default` 过滤器设置新增业务的默认值，修改【templates/blog/edit_article.html】
+
+表单中隐藏域的 `value` 增加默认过滤器，当新增业务时，提交的 `article.id` 为0
+
+```html
+<input type="hidden" name="article_id" value="{{ article.id | default:0 }}">
+```
+
+
+更多的过滤器请参考：
+
+> https://www.liujiangblog.com/course/django/147
 
 
 
