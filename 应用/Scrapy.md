@@ -4,8 +4,13 @@
     - [安装和环境](#安装和环境)
     - [开始项目](#开始项目)
         - [创建第一个spider](#创建第一个spider)
+        - [响应解析](#响应解析)
+        - [创建模型](#创建模型)
     - [疑难杂症](#疑难杂症)
         - [Permission denied](#permission-denied)
+    - [其他工具](#其他工具)
+        - [在线xpath](#在线xpath)
+        - [xpath和css选择器](#xpath和css选择器)
 
 <!-- /TOC -->
 
@@ -49,12 +54,12 @@ import scrapy
 
 
 class AiitSpiderSpider(scrapy.Spider):
-    # 爬虫的名称
+    # 爬虫的名称，执行 crawl 命令时需要对应
     name = "aiit_spider"
     # 允许的域名
     allowed_domains = ["www.aiit.edu.cn"]
     # 入口url，交给调度器里
-    start_urls = ['http://www.aiit.edu.cn/']
+    start_urls = ['https://www.aiit.edu.cn/node/388']
 
     def parse(self, response):
         pass
@@ -91,6 +96,99 @@ cmdline.execute('scrapy crawl aiit_spider'.split())
 
 执行上面的脚本即可替代前面的命名行操作。
 
+<a id="markdown-响应解析" name="响应解析"></a>
+### 响应解析
+
+前面 `crawl` 执行脚本得到的是响应全文，需要在此基础上通过 `xpath` 进行筛选内容
+
+修改【spiders/aiit_spider.py】文件：
+
+```py
+class AiitSpiderSpider(scrapy.Spider):
+    name = "aiit_spider"
+    allowed_domains = ["www.aiit.edu.cn"]
+    start_urls = ['https://www.aiit.edu.cn/node/388']
+
+    def parse(self, response):
+        # xpath 进行筛选学校要闻项
+        news_selector = response.xpath('//div[@class="content"]/div')
+        print('学校要闻统计：', len(news_selector))
+        for news_item in news_selector:
+            print(news_item)
+```
+
+执行前面创建的【run.py】，控制台打印如下：
+
+```bash
+学校要闻统计： 9 个
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="content-div clearfix">\n     '>
+<Selector xpath='//div[@class="content"]/div' data='<div class="row pagination-container">\n '>
+```
+
+<a id="markdown-创建模型" name="创建模型"></a>
+### 创建模型
+
+在【items.py】中添加学校新闻对应的模型类：
+
+```py
+# 学校要闻类
+class NewsItem(scrapy.Item):
+    # 新闻标题
+    title = scrapy.Field()
+    # 摘要信息
+    summary = scrapy.Field()
+    # 发布者
+    author = scrapy.Field()
+    # 阅读量
+    read_count = scrapy.Field()
+    # 发布日期
+    pub_date = scrapy.Field()
+```
+
+修改爬虫【spiders/aiit_spider.py】文件：
+
+```py
+# -*- coding: utf-8 -*-
+import scrapy
+
+from hi_scrapy.items import NewsItem
+
+
+class AiitSpiderSpider(scrapy.Spider):
+    name = "aiit_spider"
+    allowed_domains = ["www.aiit.edu.cn"]
+    start_urls = ['https://www.aiit.edu.cn/node/388']
+
+    def parse(self, response):
+        # xpath 进行筛选学校要闻项
+        news_selector = response.xpath('//div[@class="content"]/div[contains(@class,"content-div")]')
+
+        for news_item in news_selector:
+            news_obj = NewsItem()
+            # //div[contains(@class,"title")] 筛选样式中包含了title类的div标签
+            news_obj['title'] = news_item.xpath('.//div[contains(@class,"title")]/a/text()').get()
+            content_selector = news_item.xpath('./div[@class="contents"]')
+            news_obj['summary'] = content_selector.xpath('./p/text()').get()
+            news_obj['author'] = content_selector.xpath('./span[1]/text()').get()
+            news_obj['read_count'] = content_selector.xpath('./span[2]/text()').get()
+            news_obj['pub_date'] = content_selector.xpath('./span[3]/text()').get()
+            yield news_obj
+
+        # 找到下一页按钮对应的链接
+        next_link = response.xpath('//ul[@id="pagination-digg"]/li/a[text()="下一页"]/@href').get()
+        if next_link:
+            yield scrapy.Request(next_link, callback=self.parse)
+
+```
+
+
 
 <a id="markdown-疑难杂症" name="疑难杂症"></a>
 ## 疑难杂症
@@ -107,5 +205,23 @@ PermissionError(13, 'Permission denied')
 ```
 
 安装 `Scrapy` 框架时权限问题，用管理员权限打开 `Anaconda` 进行安装即可。
+
+<a id="markdown-其他工具" name="其他工具"></a>
+## 其他工具
+
+<a id="markdown-在线xpath" name="在线xpath"></a>
+### 在线xpath
+
+> https://www.toolnb.com/tools/xpath.html
+
+
+<a id="markdown-xpath和css选择器" name="xpath和css选择器"></a>
+### xpath和css选择器
+
+
+> https://www.jianshu.com/p/489c5d21cdc7
+
+
+
 
 
