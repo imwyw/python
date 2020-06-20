@@ -1,0 +1,251 @@
+<!-- TOC -->
+
+- [爬虫案例](#爬虫案例)
+    - [12306铁路客服中心](#12306铁路客服中心)
+        - [创建项目和spider](#创建项目和spider)
+        - [Request请求](#request请求)
+        - [添加cookie](#添加cookie)
+        - [新增启动文件start](#新增启动文件start)
+
+<!-- /TOC -->
+
+<a id="markdown-爬虫案例" name="爬虫案例"></a>
+# 爬虫案例
+
+<a id="markdown-12306铁路客服中心" name="12306铁路客服中心"></a>
+## 12306铁路客服中心
+
+基于 `Scrapy` 和 `Django` 的爬虫应用，爬取数据并持久化保存至 `mysql` ，可视化方式展现。
+
+<a id="markdown-创建项目和spider" name="创建项目和spider"></a>
+### 创建项目和spider
+
+创建爬虫项目
+```bash
+scrapy startproject my_ticket
+```
+
+通过 `scrapy` 命名创建的项目，在 `pycharm` 中需要配置相应的解释器 `project interpreter` 
+
+在终端窗口中执行下面的命令创建爬取车票信息的 `spider` 
+
+```bash
+scrapy genspider ticket_spider www.12306.cn
+```
+
+后面的域名可以缺省，在代码文件中直接设置也是相同作用。
+
+<a id="markdown-request请求" name="request请求"></a>
+### Request请求
+
+当我们实际查询A地到B地的时候，浏览器的url会发生跳转至： 
+
+```
+https://kyfw.12306.cn/otn/leftTicket/init?linktypeid=dc&fs=%E5%90%88%E8%82%A5,HFH&ts=%E8%8A%9C%E6%B9%96,WHH&date=2020-06-30&flag=N,N,Y
+```
+
+在新的查询页面进行查询操作，触发请求操作，浏览器【network】跟踪得知，实际 `ajax` 请求接口为：
+
+```
+Request URL: https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-06-30&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT
+Request Method: GET
+Status Code: 200 OK
+Remote Address: 61.147.210.242:443
+Referrer Policy: no-referrer-when-downgrade
+```
+
+通过这个地址可以看出，查询是通过向https://kyfw.12306.cn/otn/leftTicket发送GET请求来执行查询的。
+
+参数一共有4个：
+
+leftTicketDTO.train_date: 日期
+
+leftTicketDTO.from_station: 出发站
+
+leftTicketDTO.to_station: 到达站
+
+purpos_codes:车票类型 ADULT 成人票
+
+所以，我们在实际爬取车票信息时候需要基于此 `url` 进行信息的获取：
+
+```python
+# -*- coding: utf-8 -*-
+from scrapy import Spider
+from scrapy import Request
+
+
+class TicketSpiderSpider(Spider):
+    name = "ticket_spider"
+
+    def start_requests(self):
+        url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-06-30&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
+        yield Request(url)
+
+    def parse(self, response):
+        # 写入到 ticket.json 文件
+        with open('ticket.json', mode='wb') as f:
+            f.write(response.body)
+
+```
+
+执行命令 `scrapy crawl ticket_spider` 进行爬取。
+
+在项目根路径下会生成【ticket.json】文件，这个文件即服务端响应内容，打开并未显示任何有意义的数据，如下：
+
+```html
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>铁路客户服务中心</title>
+    <link href="/mormhweb/images/global.css" rel="stylesheet" type="text/css">
+    <link href="/mormhweb/images/err.css" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+        <!--
+        html,
+        body {
+            background: #fff;
+        }
+        -->
+    </style>
+
+
+</head>
+
+<body>
+    <div class="err_text">
+        <ul id="error">
+            <li id="err_top">
+
+            </li>
+            <li id="err_bot">　　网络可能存在问题，请您重试一下！
+
+                <div class="time">
+                    <SCRIPT language="javascript">
+< !--
+                            function initArray() {
+                                for (i = 0; i < initArray.arguments.length; i++)
+                                    this[i] = initArray.arguments[i];
+                            }
+                        var isnMonths = new initArray("1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月");
+                        var isnDays = new initArray("星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日");
+                        today = new Date();
+                        hrs = today.getHours();
+                        min = today.getMinutes();
+                        sec = today.getSeconds();
+                        clckh = "" + ((hrs > 12) ? hrs - 12 : hrs);
+                        clckm = ((min < 10) ? "0" : "") + min;
+                        clcks = ((sec < 10) ? "0" : "") + sec;
+                        clck = (hrs >= 12) ? "下午" : "上午";
+                        var stnr = "";
+                        var ns = "0123456789";
+                        var a = "";
+
+                        function getFullYear(d) {
+                            yr = d.getYear();
+                            if (yr < 1000)
+                                yr += 1900;
+                            return yr;
+                        }
+
+                        document.write(getFullYear(today) + "年" + isnMonths[today.getMonth()] + today.getDate() + "日" + " " + clckh + ":" + clckm + ":" + clcks + " " + isnDays[today.getDay()]);
+
+//-->
+                    </SCRIPT>
+                </div>
+
+
+            </li>
+
+        </ul>
+
+    </div>
+</body>
+
+</html>
+```
+
+这是因为12306有一定的反爬机制，需要添加一些请求头配置。
+
+<a id="markdown-添加cookie" name="添加cookie"></a>
+### 添加cookie
+
+通过浏览器进行查询车票信息，我们在控制台中可以通过 `document.cookie` 查询当前的 `cookie` 信息：
+
+```
+document.cookie
+
+JSESSIONID=F98F10F019DA7E663891E897E33CDDF4; _jc_save_wfdc_flag=dc; RAIL_EXPIRATION=1592782788871; RAIL_DEVICEID=sa9igIbAJmHsY1xwUpwIJHb3OVmWxoMlQch02ZtFmrzYg7yVz0dnZxrvvEaqRq6Zimkk3PqtNIlJXcrA0MoNKhNFuFJ2TSWZkTHmTbJvMs0Hjk7Nw7PKBXcoK4VKt0WQFyD_PgjLdW4j6WHQsX8tU7PRP7fUORPx; _jc_save_fromStation=%u5408%u80A5%2CHFH; _jc_save_toStation=%u829C%u6E56%2CWHH; _jc_save_toDate=2020-06-20; BIGipServerpool_passport=351076874.50215.0000; route=c5c62a339e7744272a54643b3be5bf64; BIGipServerotn=250610186.24610.0000; _jc_save_fromDate=2020-06-30
+```
+
+浏览器中保存的 `cookie` 是一个字符串，以 `key-value` 形式序列号对象，对应 `python` 中的字典值
+
+修改 `yield Request()` 的传参，增加 `cookies` 字典参数：
+
+
+```python
+# -*- coding: utf-8 -*-
+from scrapy import Spider
+from scrapy import Request
+
+
+class TicketSpiderSpider(Spider):
+    name = "ticket_spider"
+
+    def start_requests(self):
+        url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-06-30&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
+
+        # 浏览器控制台中 document.cookie 获取当前 cookie 值
+        cookie_string = 'JSESSIONID=F98F10F019DA7E663891E897E33CDDF4; _jc_save_wfdc_flag=dc; RAIL_EXPIRATION=1592782788871; RAIL_DEVICEID=sa9igIbAJmHsY1xwUpwIJHb3OVmWxoMlQch02ZtFmrzYg7yVz0dnZxrvvEaqRq6Zimkk3PqtNIlJXcrA0MoNKhNFuFJ2TSWZkTHmTbJvMs0Hjk7Nw7PKBXcoK4VKt0WQFyD_PgjLdW4j6WHQsX8tU7PRP7fUORPx; _jc_save_fromStation=%u5408%u80A5%2CHFH; _jc_save_toStation=%u829C%u6E56%2CWHH; _jc_save_toDate=2020-06-20; BIGipServerpool_passport=351076874.50215.0000; route=c5c62a339e7744272a54643b3be5bf64; BIGipServerotn=250610186.24610.0000; _jc_save_fromDate=2020-06-30'
+
+        # 定义 cookie 字典
+        cookie_dict = {}
+        # cookie 字符串中每对 key-value 以分号分隔
+        cookie_array = cookie_string.split(';')
+        for cookie_item in cookie_array:
+            # 以等号拆分，取出 key 和 value 对应的值
+            item_key = cookie_item.split('=')[0].replace(' ', '')
+            item_value = cookie_item.split('=')[1]
+            cookie_dict[item_key] = item_value
+
+        # 附加 cookie 传值
+        yield Request(url, cookies=cookie_dict)
+
+    def parse(self, response):
+        # 写入到 ticket.json 文件
+        with open('ticket.json', mode='wb') as f:
+            f.write(response.body)
+
+```
+
+在终端中执行命令 `scrapy crawl ticket_spider`
+
+【ticket.json】文件重新刷新，内容如下：
+
+```json
+{"httpstatus":200,"data":{"result":["vCMLKJYJqvuFUqKmmEllJl4FnGMeiSl2uHy8FlZ%2FOF6iJZklHWzZPdTA3ZKILzpQ05RJxvNAjdQ1%0AMbFOG1kvrnlB0tQiGkPNdlAo3rkE%2Bz8%2FM3OPXMnxsIRdnX%2ByGZsE3LmvsVhQmfAq1KijZPJ%2FKk2k%0Ajy0dgs%2BHArmhHX3pmmcLIr8ZMXJfsipo87oI4C5xHb4fOzRusbWpvUiktn4hjnjAx8kqT7%2Fd4al5%0ABSqaqd9t47UH43LmvplGeqrCiOuBBb3%2BZCIcRRs0kwrfdy%2FdqQ5DQUx5LQbK6Entw7cd%2FQ8%3D|预订|49000K10520A|K1049|QHK|RZH|HFH|WHH|02:17|03:45|01:28|Y|Kxetu6Hvtn57jCH2u8EbKLvjq6%2B00aJd2QyYs%2FH6s%2Biesiir|20200629|3|KA|19|20|1|0|||||||无||有|有|||||3010W0|311|1|0||300695002110023500211002353000||||||1|","JPV9G8XWUr5PaJ6rKfdmFRXa%2FbSHi8qMOiGuq21N2Iw1%2FEFGJlJAFlVw%2FRwrCbw%2B9vxSl0fS6bex%0AUoKHSaGqd57Ucb7zODKJi7nSRgPPAIm2QzrVB46DqyvoEFvEEGNOR8mftaIKJMrCRZ60N7ErTiJ%2F%0AYFV5NBHnfJBbQEUkw%2BRA9oa3dHhppDlGjUq4nSGttItJySa5yfSfB5ITXS3RyM1SwLHixUDmri5z%0Azk2IffvUVh3PAu9%2BpZqmP3FKBr7oKsP3q%2BKMCaVGU4RgNgL0aJ3jJHTI9jtYJXu4z%2FEMPdxroJ07%0Ag%2FWY%2Fg%3D%3D|预订|770000T2380A|T235|CXW|KSH|HFH|WHH|02:28|03:56|01:28|Y|43XCHc5fNPuceBUJvxUyrD6VDB7ZFGAUvirSFDKxtdrr74mDRj3Rv5Y0aBc%3D|20200629|3|W2|13|14|1|0||||无|||无||无|2|||||403010W0|4311|0|1||4010450000300695000010023500021002353000||||||1|","goGV5sUjyp%2B8jEPuIf6UZSMWiEGhm0an7stpZXagVXKLX2Sh6TxGp3gDEmH2daapqpQPVNlG6lVv%0Ac%2FBT%2BwdtuyVV3dpRy3PlBXMtRBzsHUeIFopFF9U5d7O7YBaj2RleyNtRq0PbRZ0ON2V8KshGsJDd%0AJzeTjPpp4%2BvhxhUUMtc5yXx6eRsPZIV%2B1XWayIKm%2BB2yZl7UYtcoqI1z3PbgnxRLwhrSv3AkndUk%0ArN94B90rhVHnx0ujsTRdlwhtjT8uBKhSOxURcrzQlNE%2Bz5UfNxBYIAeetMw3wrykcsjAW8bO2SJI%0ApZzacw%3D%3D|预订|380000T32808|T325|ZZF|NGH|HFH|WHH|02:40|04:09|01:29|N|JGM0DPRSr09OSfjMP79oX8Rt6WZ%2FKhKT%2FWSs8zfZvCpXEbaMOqXgKZW8yao%3D|20200629|3|F2|06|07|1|0||||无|||无||无|无|||||403010W0|4311|0|1||4010450000300695000010023500001002353000||||||1|","v%2Bcph0Z00FPqHhm6rC95ByNRG2Hl1zKBnR0vv16aIrFsa%2F0hhFFVxfvBe9W4m1O9NlOx01EQgRXU%0Az7V%2BGKhLsRc%2FvL7cNBJQOjW3SbJZ0t76iXGf%2FGecsZjKrrTa47ohY9q1NKdBVqUTT%2FS60Ls9wKul%0Auud2LD27LTsMFlUYSenyG1YdttzXi3bFOwzkjQfn2neG%2FY1%2BfzQbWS%2FoDTtvTJuAsk89jolZr%2BxZ%0AU0ypDDNhg47DqmTMtI05luQ22a8B%2Fe0Lf4JCR6ExwXmgsgr1YcCzfx9g%2BIfhdHgK5kCJ5WTL9svo%0Au5xQAA%3D%3D|预订|26000K12630M|K1263|SJP|HZH|HFH|WHH|04:27|05:55|01:28|Y|Ojp7tfKzNb8PipnxhLJGzdiyTd5hxL%2BIZ5RiWT5ZxqAjoosfCGaE7KPeG%2Bg%3D|20200629|3|PA|11|12|1|0||||1|||无||2|有|||||304010W0|3411|0|0||3006950002401045000110023500211002353000||||||1|","72RZCNvQu5CeRt%2BGWBFlEgZnD67%2FkgBjsMeQUnx5HZtMcxybFGJFmjfMV%2FCKz1hkOm4yEG2mhYqg%0Ad2iT4Xwy16Xsnl2Opmqt42MlIbO0nEQkL2WVGtByEdfXQTkAVxUkxIWvxCHCCr6dFmaRxmIVxYk%2B%0A2psbJzzXbOrkeQkVDLrHRbtmqiLtNcw8CQvaWi7v95KY9vNdfCQhZeqLrcMv7nTLvk0RAGCvGmD1%0AG8fDOSRAuJ9IegU8qtinxwCz8%2BmWovyx4exxbc5du%2FIienvYTZmwOksKNhJpBWaISYlnm3NsFJeQ%0A5JXTDA%3D%3D|预订|410000K60801|K605|XAY|HZH|HFH|WHH|05:01|06:36|01:35|Y|xHj3sR%2BPI9811JICc6AxvAnlvYbyROT9CMN6MaPZg2eUju3yfLF7tqrUyjY%3D|20200629|3|Y2|15|16|1|0||||11|||无||有|有|||||301040W0|3141|0|0||3006950021100235002140104500111002353000||||||1|","NuHq4DqLqWP1fuU4Ik%2FX5DfnoFxIQiUQza5Hh4LwmOfQ0oN56pr0ocMwpRTJvHvv3xhR9vUM1Zeu%0AwhY7KzRMgMQxlJhWa1ec%2FOHUp7Cts%2FAcp%2FPcZ5C3q3h8F%2ByOgu505zLD5gjKinY77U%2FgkyLHnKm6%0A2g4wFiRtxVMZyKUPCGwZrqA1ofZNpZLSr5nfnFmvNeSeVzWb1exiB6A00NGOeAnYgbHALlle8NAF%0AulVEPDHH3LeYV4TwjHfiUMZW6vvSDjj1p0EKa%2FeBX%2BeDeZ2%2FwiIA9C5ssOPM0rngQk%2BazWbZ3VIP%0AS28j3w%3D%3D|预订|410000K4680O|K465|XAY|NGH|HFH|WHH|05:08|06:47|01:39|Y|SSfnddg%2FpbrRSQRneGeyC4A9e%2BaTxtqRBMUK6xlqyOC5ElFTOZbbh8RH094%3D|20200629|3|Y2|11|12|1|0||||5|||无||14|有|||||301040W0|3141|0|0||3006950014100235002140104500051002353000||||||1|","vYYxuaoBZbqtzcMqDlnI4hrUH4P1DH%2BZ3FxXQX7erfsuexW7biuoQq3FZtkPuqiivQVKCNa%2FPg7M%0AdJjLw%2FQOaISbvQuP5Lo4Sw3Sq0Br7dMtjII60ACk2xCDs9MTAsclFI7YWqqjqVRcXGtNH08FCNFf%0AEr6PoVfBgA9F3%2FZGvaYLahNRq0zclMXw5A7pQVs6z%2B3FW%2F33W%2FPmaPNYXBCumzYRHkkiG2kE2Wa5%0ApD80Zh1vDxArAWAbYUjjMpLd55iDp700Vghaaev%2B0MfDRBcs9xpTXZ0OcuHWI2tQNBIuZDZFbQ85%0AvUax0Q%3D%3D|预订|76000K11580G|K1155|CDW|SHH|HFH|WHH|05:46|07:21|01:35|Y|Wvxdm%2BYv4SVnD1pltHwk9iBKSxolRu94ENocri4vhNUZEUG0jgBEsdbs8aY%3D|20200629|3|W2|12|13|1|0||||1|||无||19|有|||||304010W0|3411|0|0||3006950019401045000110023500211002353000||||||1|","Ppm8c9etq91I8sm54jrtNbq4RvQ7fEB%2BtwuGTC5eotdiO3qpedorhegErPgJKg6S87oG7%2BcOFipz%0AVt6Tu8jn7kjIEUQZMGJcKJG%2F4x8jxnxCAB9KH9HQINijI1zUnjcZConlwbvDeHIojR6Lx6S7hB2v%0ALNc%2BiIGSxTvMDO7uqOIrkVI3IXKn3UoDaqBtWi%2BSp4kqw5yLobtwJA7uxqSbObKX6F9eysvXh6gP%0AUomUSsWMJs3C3pZpJwkMrRDo04VO%2BOkdKa1nPQ5yeFbRMCsTcYTPPvdNGi0wmTFT4N5x8iSSUmgM%0A%2FAzxvg%3D%3D|预订|77000K115430|K1154|CXW|HZH|HFH|WHH|06:32|08:06|01:34|Y|Pu0OnCKRrzZU34hLufdoBpR%2Bdv%2FyiskXJXK37Vi3Wdqi0Mxy2FOcPMfEb1Q%3D|20200629|3|W3|12|14|1|0||||4|||无||16|有|||||401030W0|4131|0|0||4010450004100235002130069500161002353000||||||1|0","IUEW%2BGIMBqYAyLB26AZLU9p5sVRC%2FFyKQ0%2BRdn8QvreL0XVMC5EwRlXhcYUOSCTN9UbMtPdICcmW%0AG3ntV4qARaBFt5xovnvU0s847lwxApdH9drxoV5KX159VUke6TnWjDYYu8hWgePvJmDrg7HsTvuf%0AknjPdQ3QQ%2B92EUhUH7ML1wWq1ItLVuZfYcrIt6iyDBdBlVsurbFgfkO2yAkIOa14F5iZWLfIcZb0%0Awh0fK72YGBfjgLccKNBs8xsnhQ3O%2Ft4B3CK2nmwz8kX2EM5348XYczWpNuDkFj%2FqnEdWH%2Br0cK2B%0AUsFz0Q%3D%3D|预订|280000K8911J|K891|DTV|HZH|HFH|WHH|06:40|08:15|01:35|Y|WABXLJJzzfzxqg%2BaJmr4%2BwL7Ev3QbcLjqF%2F1ghAMByrWLFUMN5t8zETsAPc%3D|20200629|3|V2|18|20|1|0||||18|||无||有|有|||||403010W0|4311|0|0||4010450018300695002110023500211002353000||||||1|0","Uy4J8FbVSVE8Meeqb4APBeiq0Bm7dS7MCVAo3GKNFtsXR6U3r1XtBsQH0IszzG5x%2BW9EgoLWxnJf%0AS3uE4f7c19r8KyB3WCfwRQQuYzIOGAcL%2ByErks5pYm228eRJtjYy7SGr0B%2FFQBZ1HTNREztCmfDy%0A%2BOrstlHlNG9KF61X%2B25Y2QfNfAh%2F9xo64V4h8KpKPWT95%2FyxxuCaqpJKssh9RF3jFKOvI9Wm0zgu%0Ai7HvN8ULc7X2Sj5Gh0WNX5bpZx1azW8RJMkkVLbonqZwkGRHwE5K%2F2rv32a8T4YsnvX2fXc%3D|预订|38000K227510|K2275|XXF|HZH|HFH|WHH|07:30|09:06|01:36|N|NdfoCdvsz215TcUgs9nD4MBEx5R%2F3s%2Bsu28xzjwh5qO1usAx|20200629|3|F1|10|12|1|0||||无|||||无|无|||||304010|341|0|1||300695000040104500001002350000||||||1|","PuZdmUiYbwALBW4v9%2B2YFExi9Yvzh6dE%2FQ5pWNVRX0i0QnyqDSh9eqG3NBhU%2B8JdtEUlFcE8GK9Y%0Aamq3Gt6icKEcxHicOv%2FQPRBGep8wtGNafIm9L0drzKua04Cqh9g8ZlmXlGbXuIxP5y3GyqpzooxB%0Acb2Ik%2Fsi4dmTYDNZXJnd%2B2L98noWggxzuSid0rgFUnTmqL6sSJ4AaB9i3NALbtkYrmuA5r6fAtJO%0A6p6kF8MknEhEnln3QHFFthsWG93j3xAcclVd5exY%2BTIfjcwflJlU%2Bcw%3D|预订|53000K852121|K8521|HFH|WHH|HFH|WHH|09:15|13:10|03:55|Y|k%2FUjxB7NHMh8xozFi2swi8srA2t%2BM86W|20200630|0|H1|01|05|1|0|||||||无|||有|||||10W0|11|1|0||10022500211002253000||||||1|","ZokPwMm62yXlL5fuDHCcxZG%2BswfPNMMPOwQrtEimJvVw0pThMo%2F1bF8yPodUSYq%2FP60Cmw%2Bu8Yzx%0AtmEcR2%2BWnzBTh2h51aY4prJ%2F%2BAaSSU7WfsJ33qT2D4Y%2B32W6LGzVo7%2F5VZFp39ynG9tAG2hZI88H%0AsDNj15HLtIltpXwuORlQDBwfq%2BDwCLX3duDM9OKO1h6ApgqsmrMNSbJWd8FRYtraAJenkE3RGmzw%0AZzO8L14tbNiohs3vIrJAdirHc0e8waz6qnb5o2hCRvU7N8ZvR4GFziw%3D|预订|53000K8553B8|K8553|FYH|WHH|HFH|WHH|11:28|13:02|01:34|Y|1NzcekchylLWkpwc%2F8BODqva0DYDCu7Q|20200630|3|H2|04|06|1|0|||||||无|||有|||||10W0|11|0|0||10023500211002353000||||||1|","toRE2j9mTv%2Bsl7YdXTgiYkqGbyeOUZEpUP41NnzYeo9FRauYP7U30IrZqBJwEW3klOgaidXCc3rE%0Ae0a%2FQ4hW%2BHY0vWiWzGTebbiogsG%2FWpVDxim7O13VfbfLiaaO3TtFZn35krgmCvWvkWqOZOBRbZ%2Fp%0AY4kwX47FTW49QteILeW8i3AdfvlYAdarmYpSvC7oM9dLL26azUoMTO%2B4qcMdlaKmKAaK%2BJiKlaY8%0A%2BeKNI3yfgweDw8eI5JZraQa0I3%2B5iIq97TY66wSTyDS0ciVIxcmWct9zUbt%2FvPWKiFcVbi6AJBEb%0Ae8zORg%3D%3D|预订|330000K6550D|K655|BTC|HZH|HFH|WHH|12:29|14:08|01:39|Y|4oUivAFxTaS7kcKIlRtRrHBKTMRe%2BjgqAgXiZrCVXkOfeP%2F41uhf0lCODkE%3D|20200629|3|C1|22|24|1|0||||12|||无||有|有|||||403010W0|4311|0|0||4010450012300695002110023500211002353000||||||1|","WahK0%2BZKIggeoDUxO86znk7CLRsbkqsDf4E9%2B2CzvF0LcN9eSjXexV04PuD7vVmTmJ8qiu1xS9zv%0A%2BrpotWogLV154iXZw1SuFx1%2FdYkuuIlGbHFG9VyurDkuXW6LiACyp%2BfERMdJxlhXY0wDn5xCgo9i%0Ad3bCpBW0NlBy5wMH2%2FKTAArZQQ0PrjRNRCXxvogkVhbRMAtWvmFvCUoHf8Xro8z2anRy6Evxdqcx%0Ai2fCYDA66bvi5QdVxO7u9EHm8H4GwCcSybLXkIzX1jrFaDeEIQnaw47cbdMhADsqmHlpRGB3SN8L%0AFPX2nw%3D%3D|预订|27000K13980F|K1395|TYV|RZH|HFH|WHH|12:41|14:18|01:37|Y|SvUogh8qPe4DZBLRsTWXhbuM0%2BuaD%2Bd%2BU%2Fl8RdswyHPUNZpngQXhr8mmWJo%3D|20200629|3|V1|15|17|1|0||||有|||无||有|有|||||304010W0|3411|1|0||3006950021401045002110023500211002353000||||||1|0","ZkW02CtURLnQoRD4s%2Bl47fIApdfCwPeK%2FJZOJUZveyzBP2vG30zYjFA6gSStNTW%2FRYyIQgwOH6G4%0AQ%2BoNrweLIQVKIF8Tpvik48VqVr7xMM%2F7Oe%2FT7sPbmpbylZRTxb%2BhtYl9CgEXSdqptECPW%2BhkQ5Fq%0AkC4y1bFuQ%2FR44w3Cmh4ND%2FSjV7FK1MOrDr54M%2B5ds%2FUH9fu3SO9Qw%2F%2B1Kt0m%2FywZLiYWF8ozj8eG%0AS3BA1VE9C7CVXT9euM7zNFrzRUlN9FYvmM%2FbJNDHVi5FO9MOY2HEhQ0v6T3uACqKpLsk1A%2Fgs7dp%0AiJGGFQ%3D%3D|预订|41000K29080K|K2905|XAY|RZH|HFH|WHH|14:04|15:39|01:35|Y|RxXi6xr2AeF1nCvGBfM86CFQYE4OnfDhRfljNVin0K0UETWRBrtaQM3bYMM%3D|20200629|3|Y2|11|13|1|0||||19|||无||有|有|||||103040W0|1341|0|0||1002350021300695002140104500191002353000||||||1|","zBOiRBGMXiYGBVBVAkbhcUB5ekQbFIbAYmLDCCAS4YaBlfW4FQq6LvwRBSq6C2sXALjyCjdj%2FuPK%0Ac3odSM62KvfgEsTYp5pTFHf9oT5b0OxRnsXNbKjhMxBap%2Bi8eF4RB%2F1Q1Pmi5T6dISMmvZOI4HZo%0AEm%2F%2FQgEI8NQ1A0hQdv581QE%2F94A70W%2BtTbnN4EAHKi3EUN%2BcEbNUcWUk3tXQM3PrqUAvYwFXYDlc%0ADoWNwMTR28RwtRtx2koGxtlodWkWHYQuNsfyjSj0Jxkp8NwKEMBnSaby7XRUT8EpULU8rbQ%3D|预订|48000K841471|K8411|UKH|WHH|HFH|WHH|15:18|16:55|01:37|Y|QToqCw%2BJZKyTo2FFTcytdWKipjLp7uoNn7qL1gGywcaTJUec|20200630|3|H6|12|14|1|0|||||有||无|||有|||||1020W0|121|0|0||100235002120035500211002353000||||||1|","bOzKr9mHKAyfcunwj0tEXaz6kN%2Bp5EYmaWhn%2Fla7Itzznpo%2F7h2UaEp%2Ba88f92Mn%2BAUWHfjfGJbR%0AHi2At458oqPLgpXWEj0ARAH2C%2FnvK9Ags%2FT6I7AjXCgErGhvpy%2F6PClMlDgKDBtkzLkuNliBHb7p%0AQXzB82TLr9UG2VAoG8CKeM0rluocC3Nvk6TM6usafEQLDXNnx9qTuke2CVwYjrbNAsfVVEhNhybZ%0AU%2FozA1J6EHCRgsHxs%2FUBWxq7y40Uk%2Bv2vIZM2zIvimdsjsGWwwlAi%2Fs%3D|预订|53000K852541|K8525|HFH|WHH|HFH|WHH|16:16|20:11|03:55|N|1I4kGIO%2FfkTNncoJKn5qEtUnCZGwUJLP|20200630|0|H1|01|05|1|0|||||||无|||无|||||10W0|11|0|1|1|10022500001002253000||||||1|","r1QhkSQz5SG9Lp0hNomfEadA4%2BExJT%2BypMdS0ueGtpLpmGg22QO%2FOuON%2BGzusUs%2FQZl%2FJ5Fyn7UX%0AZO%2FYYdd64HWGRAdgLGYAXpktSFCYiK3ttmTqttDS3u02qB5XQ38a4Gye8bM7jJ%2FKi4Q3mkU%2BH83a%0AsL9PkkbHG0wiJW%2FyOg5WDMw9v355iMMd3uNKiZVQBhulRx6E4oqYS6nEfnbFUa3r9WML6K65txec%0AJjhiNACIOt55SEEo9OvfBc%2B3u%2BbXt4k82VfTuzKUGhAATyiG4ZPDbWacjrGO5fa99h%2FojwQ%3D|预订|53000K842190|K8421|HRH|WHH|HFH|WHH|19:01|20:46|01:45|Y|uHNvb1qLzsS0XkhjRvjhGD0NljSvyg2I0amdcR8%2FpfjbZzRm|20200630|3|H6|05|07|1|0|||||2||无|||有|||||1020W0|121|0|0||100235002120035500021002353000||||||1|0","aPvBwge%2BjF4ZHGgQ%2B1hGrOidwsTkOxSTiwGdwQ46GoqqwU5VEvP0P0SAJFowvcicLwFMisRuZqus%0Av5OrZYHGSYrNVdnLwShI8wtwZ1fx3V1eWUmQQoypkH4%2B1wz016mIft1Trg7PLaGhO7wHUGXkCNbd%0A%2F3JCd%2FNapgpMid6%2FdKO0phukD12SsXoVFKUwej8WHsNrFMDCYGVDVh%2FV4jOowb%2BXAMQF%2Bfav7PIe%0AIfjuxs3tsM1yVVN2jZ1sb3DC2n8b%2BBot3Yje5E%2Bn3CskqGJXk0NlXWlzrpQ8dCcfTY5C9AYhi5ws%0Alaw2zw%3D%3D|预订|53000K8499J1|K8499|FYH|NGH|HFH|WHH|21:34|23:08|01:34|N|JGM0DPRSr09OSfjMP79oX8Rt6WZ%2FKhKT%2FWSs8zfZvCpXEbaMOqXgKZW8yao%3D|20200630|3|H2|03|05|1|0||||无|||无||无|无|||||403010W0|4311|1|1||4010450000300695000010023500001002353000||||||1|","ioLx6gmAezSvy5JBIrzxCjDxmfYuQzM%2BlxNGLvploEHYhNPnAJ3F4Es3nPcdh%2F3IUrBuYdFGaaDH%0AO%2F5DZwtvK59ovA3lUQWrxfH5ds7PRM%2FNyx%2FnxD0c1YDDPEJc%2FTYCypLgOXHzkChizqH5ojP4yHtp%0AAieV9s%2B46pg1HBo3jqpPn22YCIAp8IO8UEucWsbBOiGHBo8pRYelcqgAVtNYXII%2Bl0Kgwfhqpfeb%0Aqi%2FkdrQeMrVuKY%2BITTXIPGhOFN2r%2Bq0OBpWG19Shrjtn4OJuWBMX1%2BahDMWHPu2rOoXXtDLi8F02%0AtsFyYA%3D%3D|预订|850000K30633|K307|LZJ|RZH|HFH|WHH|22:03|23:39|01:36|Y|99kxSSyXgH%2FnHKHGVw0D78sbZm1yPwC2MejSTOdScrjQstixN5Pq7KpmOK4%3D|20200629|3|J1|24|26|1|0||||18|||无||有|有|||||301040W0|3141|1|0||3006950021100235002140104500181002353000||||||1|0","f0v2WKUY5pdFvJlRROqNEehQoLC%2Fdi%2FUIquwqZJEWiP614dXqMKYiUNeX7mTF7NsD%2FakjgI7CEew%0AEFpid0Y%2F8QlqmoMPM6C79FPZ1bPkKIAB0lnS8n%2FjbS3uilVLsVF4foYougk6Wz4kCBDIQYwMHLy%2B%0AEzvQrjYdUSDUiZjSS2bdplJdr0d2GZqcDtw2eUhBKYm5YYnhs8STlo9pow0%2BTbEwn1w12bsNyZhi%0AjbQL7SNEJohFtj6bPKNoSt88GdJuMFTxRE5oZi4N%2FRS4WdOewvjCXb9G73yeqPN42namWktBlQMB%0AwP8QZQ%3D%3D|预订|38000K12400E|K1237|ZZF|RZH|HFH|WHH|22:28|00:05|01:37|N|PFtozisMOYGPHPNcQ8m5e5RXs6UEE9GaK%2FTndIj6IXGZoHDoCUfo7JNV8y4%3D|20200630|3|F1|09|11|1|0||||无|||无||无|无|||||301040W0|3141|1|1||3006950000100235000040104500001002353000||||||1|","UZnyt3RBoavZl1Zl7MGM3jJ52eVIb%2FrVP4E14Y9bpgaSWYAJ4yuA7LXNseNDy%2BxZMVXB0aO5OCrF%0ATjX5LwAu94wiT2yV0EkKP9dLddaE%2FKDAYvHXmVw%2B0Ay2ffb9tld7ipKJ1Iz12iRJAkUP5eCXAuK9%0Aup2BJwNKa8mykqci85d8HDH8sLzqV8fPZGIX05gTwgNdDmBMOzyK8LW%2FeilOTICDUeBks%2FqlqXGe%0ADM2YIsprCSJ7cT%2FV%2BmTWsWpmfKojnLhUBvdSjHcRz%2FrhAQPliAFxwRsQw8VydXAn52hE6dU%3D|预订|53000K8361I0|K8361|FYH|SHH|HFH|WHH|22:35|00:12|01:37|Y|PXElnXlLTnXmDtFrwUlQ3EZ%2F3mrDvr3kzwHxDaSM%2Bd9sVkV8|20200630|3|H1|04|06|1|0|||||||无||1|无|||||3010W0|311|1|1||300695000110023500001002353000||||||1|0","l2sp1LH2nwEafWSsVe4WKvVVNT0u0BnmAtN1Euge%2Fhm9gL5DgTBDcK4RoHevwGlTDhLYDrTFS8t3%0ARoDoIDgco36yFvz6zzT4U1xX7BtZkJ6y%2BjKsAdUyDAh%2FWOQQ0Lh2amchYF33wrcAZ1SvsbFpQ9vp%0AxIyUfIhE3wOueId3jPpXwkEdtqlnW9TB6VFJe73kG4QVMFjODb6ERQTWFmuecyQ0BtLpIepE72ab%0Aksjquz2O2OBJn25jCEcpJr%2FRMyyDZlJI97OECU7oBKDVHm19VjoPxwnlD4RWelE9LSb4wtxoKJDD%0AGW3bhRaUg%2BU%3D|预订|480000K67703|K677|XCH|GGQ|HFH|WHH|22:45|00:25|01:40|N|AkZvQ%2BegAfTMj2AoNQ2DqUbSWR8kfVjL02Rvnqzmmw5a4ACgbZGIiCLlcP0%3D|20200630|3|H6|04|06|1|0||||无|||无||无|无|||||304010W0|3411|0|1|341|3006950000401045000010023500001002353000||||||1|","ii2VaSzc8NWZThtHJlYrZHFcqWB9im2%2F7zMGZrBJaNRWa7H2FbOoxP2oEaMHi4MnRq7rtsS49Sey%0AetLTEWS5rrzMBZ%2BV%2FeijHSmf28uMcsDYFOJNqqaGhxwvhHKj77%2FXqfraKeHZ5GmfJWRYT36GdCF8%0AraXmlIaTWio%2B3ch8PbI%2B2webNRHuyT8WjCpg0p%2BcWdFLTuSOuBGpncPEy5HJP%2FMcctDqc8YVBxVs%0AZ%2BAeh1bzED1euQvbLatoCE86Vq3gkpmJfdL42xhNr7NX6eC8UxoV4K7DQn0A9%2BAbcQuUlEM99aZl%0AfumuNw%3D%3D|预订|85000K104203|K1039|LZJ|NGH|HFH|WHH|22:58|00:33|01:35|Y|G8AGlb3cUE9%2BQGxG4m8mnyzbLyq0TecyB4CE5iPFGAr0Oa9in9W8ZHc10NA%3D|20200629|3|J1|23|25|1|0||||19|||无||有|有|||||403010W0|4311|1|0||4010450019300695002110023500211002353000||||||1|0","ooWvkgM2bcbhhfAhamWE8ZPnf3DoDWfRyVAV5fADt9zfVRKEaZ1Oy9R44MXkMeODTw%2BWkRhIroq8%0AV5lhpwrlKSz%2B7gzuqskK25vcqokflrVvFHt7pI1XezDYehbq6PIfC%2Fgy8ouBTvCz3S4kDHG9a%2BPH%0A%2Bxo2pT%2FtpZyAmYndqgv%2BgZzYPKm%2BoXCMs%2Bn1o38GEAxIeR0YrK52zaNfAhMIyyTOve0FfrVdnD%2BY%0A2d34roy3ffteCi9gRT5cL2oiaWbnFonaF3ALMNehxTmRx8%2FuI%2FQDryiqz0pJV7K%2FKpBUkofFEd87%0A2qL6zA%3D%3D|预订|39000K144001|K1437|PEN|NGH|HFH|WHH|23:14|00:48|01:34|Y|5uC1FDwrtzFSmMTdfrYzwkCrXwNN4In07WteQZ8hM7iVqzwWAlY6iRxxLaE%3D|20200630|3|N6|10|11|1|0||||1|||无||无|4|||||301040W0|3141|1|1||3006950000100235000440104500011002353000||||||1|","I0ru30D7Ihe4zAD0yszz6IeGG6%2BXl%2FLc210oYmccVfe6NqBcaQHqYSPaP0MQt6O7LYGHMtI57WsN%0AXmRBUFCuv5IdCN8Vlpy1qhWObZSoKP8F39qXCSvvobQ26mIZzrHAXgpNa8Edf34Es5UkTUIMvkcz%0AKB4vd5ctQgys9Ed9KZcilOqPJBjHH85lmXLi%2FRwP97F3nkJd6zKrJ7Eeu5yYtVVaut7G4arXcIfa%0An6vQfaj4dauzX%2F%2B87356fl8QxNZSICWdhC08AWQ2Mmu8lvzcIgIYVGOG0xLlXZAL0zwOVeVp3lsG%0AH06bzQ%3D%3D|预订|53000K8563A5|K8563|BZH|NGH|HFH|WHH|23:23|00:57|01:34|N|srkH7tz3t4B5ODDqAjFwAFjUwRpDXb3usVZ18czClEv8k8zzByainO%2FdojU%3D|20200630|3|H6|04|05|1|0||||无|||无||无|无|||||103040W0|1341|1|1||1002350000300695000040104500001002353000||||||1|0"],"flag":"1","map":{"WHH":"芜湖","HFH":"合肥"}},"messages":"","status":true}
+```
+
+以上便是一个标准的 `json` 格式。
+
+<a id="markdown-新增启动文件start" name="新增启动文件start"></a>
+### 新增启动文件start
+
+每一次都需要在终端中输入命名来执行爬虫很麻烦，创建新的 `python` 文件 【start.py】
+
+```py
+from scrapy import cmdline
+
+cmdline.execute('scrapy crawl ticket_spider'.split())
+
+```
+
+后续执行爬虫可以直接执行【start.py】文件，还可以方便的进行调试。
+
+
+
+
+
+

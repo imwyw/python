@@ -6,6 +6,7 @@
         - [创建第一个spider](#创建第一个spider)
         - [响应解析](#响应解析)
         - [创建模型](#创建模型)
+        - [保存](#保存)
     - [疑难杂症](#疑难杂症)
         - [Permission denied](#permission-denied)
     - [其他工具](#其他工具)
@@ -188,6 +189,17 @@ class AiitSpiderSpider(scrapy.Spider):
 
 ```
 
+<a id="markdown-保存" name="保存"></a>
+### 保存
+
+`scrapy crawl 爬虫名称 -o 保存的文件名称 -s FEED_EXPORT_ENCIDING=utf-8`
+
+`FEED_EXPORT_ENCIDING=utf-8` 设置编码，防止打开乱码
+
+```py
+(C:\ProgramData\Anaconda3) D:\Codes\Py\hi_scrapy\hi_scrapy>scrapy crawl aiit_spider -o aiit.csv -s FEED_EXPORT_ENCIDING=utf-8
+
+```
 
 
 <a id="markdown-疑难杂症" name="疑难杂症"></a>
