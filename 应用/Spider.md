@@ -6,11 +6,15 @@
         - [request的使用](#request的使用)
         - [Request方法](#request方法)
         - [urlopen方法](#urlopen方法)
+    - [requests库](#requests库)
+    - [XPath](#xpath)
     - [BeautifulSoap库](#beautifulsoap库)
         - [添加beautifulsoap库](#添加beautifulsoap库)
         - [快速开始](#快速开始)
         - [find_all](#find_all)
         - [find_all和find应用](#find_all和find应用)
+        - [基于requests的Beautifulsoup](#基于requests的beautifulsoup)
+        - [选择器](#选择器)
     - [连接SQL Server入门](#连接sql-server入门)
         - [模块](#模块)
         - [连接](#连接)
@@ -59,14 +63,14 @@ Python确实很适合做爬虫，丰富的第三方库十分强大，简单几�
 
 <a id="markdown-urllib库" name="urllib库"></a>
 ## urllib库
-Python有一个内置的urllib库，可谓是爬虫过程非常重要的一部分了。
+Python有一个内置的 `urllib` 库，可谓是爬虫过程非常重要的一部分了。
 
 这个内置库的使用就可以完成向服务器发出请求并获得网页的功能，所以也是学习爬虫的第一步了。
 
 <a id="markdown-request的使用" name="request的使用"></a>
 ### request的使用
 
-request 请求最简单的操作是用 urlopen 方法，先通过以下案例有个直观感受
+`request` 请求最简单的操作是用 `urlopen` 方法，先通过以下案例有个直观感受
 
 ```python
 #urllib.request 主要用于打开和阅读url
@@ -106,11 +110,11 @@ class Request:
 * headers是HTTP请求的报文信息，如User_Agent参数等，它可以让爬虫伪装成浏览器而不被服务器发现你正在使用爬虫。
 * origin_reg_host, unverifiable, method等不太常用
 
-headers很有用，有些网站设有反爬虫机制，检查请求若没有headers就会报错，
+`headers` 很有用，有些网站设有反爬虫机制，检查请求若没有 `headers` 就会报错，
 
-为保证爬虫的稳定性，建议每次都会将headers信息加入进去，这是反爬的简单策略之一。
+为保证爬虫的稳定性，建议每次都会将 `headers` 信息加入进去，这是反爬的简单策略之一。
 
-可以把这个浏览器的headers信息复制下来使用。
+可以把这个浏览器的 `headers` 信息复制下来使用。
 
 ```python
 from urllib import request
@@ -135,9 +139,9 @@ def urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TI
             cadefault=False, context=None):
 ```
 
-urlopen 是 request 的其中一个方法，功能是打开一个URL，
+`urlopen` 是 `request` 的其中一个方法，功能是打开一个URL，
 
-URL参数可以是一串字符串（如上例子中一样），也可以是**Request对象**（后面会提到）。
+`URL` 参数可以是一串字符串（如上例子中一样），也可以是**Request对象**（后面会提到）。
 
 * url：即是我们输入的url网址，（如：http://www.xxxx.com/）；
 * data：是我们要发给服务器请求的额外信息（比如登录网页需要主动填写的用户信息）。如果需要添加data参数，那么是POST请求，默认无data参数时，就是GET请求；
@@ -156,17 +160,111 @@ geturl(): 返回URL，用于看是否有重定向。
 info()：返回元信息，例如HTTP的headers。
 getcode()：返回回复的HTTP状态码，成功是200，失败可能是503等，可以用来检查代理IP的可使用性。
 
+<a id="markdown-requests库" name="requests库"></a>
+## requests库
+`requests` 的底层基于 Python 官方库 `urllib` ，但 `requests` 良好的API设计更适合人类使用。
+
+中文文档：https://requests.readthedocs.io/zh_CN/latest/
+
+作者博客：https://kenreitz.org/
+
+使用起来更加的方便：
+
+```python
+import requests
+
+url = 'https://www.aiit.edu.cn/node/388'
+
+headers = {
+    'User-Agent': ''
+}
+
+res = requests.get(url, headers=headers)
+html = res.content
+
+with open('aiit_reqs.html', 'wb') as f:
+    f.write(html)
+print('done!!!')
+```
+
+<a id="markdown-xpath" name="xpath"></a>
+## XPath
+XPath全称 XML Path Language，即XML路径语言。它是一门在XML文档中查找信息的语言。
+
+HTML与XML结构类似，也可以在HTML中查找信息。
+
+chrome浏览器也可以安装 `xpath helper` 插件，方便测试路径表达式，更加推荐在线工具：
+
+> https://www.toolnb.com/tools/xpath.html
+
+常用的XPath路径表达式如下表所示：
+
+表达式 | 描述
+----|---
+`nodename` | 选取此节点的所有子节点。
+`/` | 从根节点选取。
+`//` | 从匹配选择的当前节点选择文档中的节点，而不考虑它们的位置。
+`.` | 选取当前节点。
+`..` | 选取当前节点的父节点。
+`@` | 选取属性。
+
+列出了一些路径表达式以及表达式的结果：
+
+路径表达式 | 结果
+------|---
+`bookstore` | 选取 bookstore 元素的所有子节点。
+`/bookstore` | 选取根元素 bookstore。注释：假如路径起始于正斜杠( / )，则此路径始终代表到某元素的绝对路径！
+`bookstore/book` | 选取属于 bookstore 的子元素的所有 book 元素。
+`//book` | 选取所有 book 子元素，而不管它们在文档中的位置。
+`bookstore//book` | 选择属于 bookstore 元素的后代的所有 book 元素，而不管它们位于 bookstore 之下的什么位置。
+`//@lang` | 选取名为 lang 的所有属性。
+
+常见用法：
+
+```py
+# 查找name属性中开始位置包含'name1'关键字的页面元素
+selector.xpath('//input[starts-with(@name,"name1")]')
+
+# 查找name属性中包含na关键字的页面元素
+selector.xpath('//input[contains(@name,"na")]')
+
+# 按照文本内容查找
+selector.xpath('//a[text()="百度搜索"]')
+selector.xpath('//a[contains(text(),"百度搜索")]')
+```
+
+在使用之前首先要确保安装好了 `LXML` 库，并基于 `requests` 和 `xpath` 获取新闻标题：
+
+```py
+import requests
+from lxml import etree
+
+url = 'https://www.aiit.edu.cn/node/388'
+
+headers = {
+    'User-Agent': ''
+}
+
+res = requests.get(url, headers=headers)
+html = res.content
+
+html_selector = etree.HTML(html)
+# 或者 //div[@class="title ell"]/a/text()
+title_array = html_selector.xpath('//div[@class="title ell"]/a/@title')
+print(title_array)
+```
+
 <a id="markdown-beautifulsoap库" name="beautifulsoap库"></a>
 ## BeautifulSoap库
-Beautiful Soup 是一个可以从HTML或XML文件中提取数据的Python库.
+`Beautiful Soup` 是一个可以从HTML或XML文件中提取数据的Python库.
 
 它能够通过你喜欢的转换器实现惯用的文档导航,查找,修改文档的方式.
 
-Beautiful Soup会帮你节省数小时甚至数天的工作时间.
+`Beautiful Soup` 会帮你节省数小时甚至数天的工作时间.
 
 Beautiful Soup 4.4.0 中文文档：
 
->https://beautifulsoup.readthedocs.io/zh_CN/latest/
+>https://www.crummy.com/software/BeautifulSoup/bs4/doc.zh/
 
 官方文档：
 
@@ -284,6 +382,45 @@ for i, t in enumerate(nameList):
 怦然心动-9.1
 触不可及-9.2
 '''
+```
+
+<a id="markdown-基于requests的beautifulsoup" name="基于requests的beautifulsoup"></a>
+### 基于requests的Beautifulsoup
+
+找到所有的标题：
+
+```py
+import requests
+from bs4 import BeautifulSoup
+
+headers = {
+    'User-Agent': ''
+}
+res = requests.get(url='https://www.aiit.edu.cn/node/388', headers=headers)
+html = res.content
+
+soup = BeautifulSoup(html, 'lxml')
+title_array = []
+for title_div in soup.find_all('div', {'class', 'title ell'}):
+    title_array.append(title_div.find('a').attrs['title'])
+print(title_array)
+
+```
+
+<a id="markdown-选择器" name="选择器"></a>
+### 选择器
+Beautiful Soup支持大部分的CSS选择器，参见：
+
+https://developer.mozilla.org/zh-CN/docs/Web/CSS/CSS_Selectors
+
+在前面案例基础上进行修改，采用选择器的方式更加简单：
+
+```py
+soup = BeautifulSoup(html, 'lxml')
+title_array = []
+for title_item in soup.select('div.title.ell a'):
+    title_array.append(title_item['title'])
+print(title_array)
 ```
 
 <a id="markdown-连接sql-server入门" name="连接sql-server入门"></a>
