@@ -7,6 +7,8 @@
         - [响应解析](#响应解析)
         - [创建模型](#创建模型)
         - [保存](#保存)
+    - [持久化存储](#持久化存储)
+        - [mysql存储](#mysql存储)
     - [疑难杂症](#疑难杂症)
         - [Permission denied](#permission-denied)
     - [其他工具](#其他工具)
@@ -198,6 +200,96 @@ class AiitSpiderSpider(scrapy.Spider):
 
 ```py
 (C:\ProgramData\Anaconda3) D:\Codes\Py\hi_scrapy\hi_scrapy>scrapy crawl aiit_spider -o aiit.csv -s FEED_EXPORT_ENCIDING=utf-8
+
+```
+
+<a id="markdown-持久化存储" name="持久化存储"></a>
+## 持久化存储
+
+<a id="markdown-mysql存储" name="mysql存储"></a>
+### mysql存储
+
+在 `mysql` 中创建数据库 `aiit_db`，执行脚本创建表：
+
+```sql
+DROP TABLE IF EXISTS `aiit_news`;
+CREATE TABLE `aiit_news` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(100) DEFAULT NULL,
+  `summary` varchar(1000) DEFAULT NULL,
+  `author` varchar(50) DEFAULT NULL,
+  `read_count` int(11) DEFAULT NULL,
+  `pub_date` date DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+取消【setting.py】中关于 `pipeline` 的配置：
+
+```py
+# 取消该部分注释，否则无法处理数据
+# Configure item pipelines
+# See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
+ITEM_PIPELINES = {
+   'hi_scrapy.pipelines.HiScrapyPipeline': 300,
+}
+
+# 增加部分 数据库连接配置
+MYSQL_HOST = 'localhost'
+MYSQL_DBNAME = 'aiit_db'
+MYSQL_PORT = 3306
+MYSQL_USER = 'root'
+MYSQL_PASSWD = '123456'
+```
+
+在 `spider` 中 `parse` 方法内 `yield` 迭代的对象都会经过 `pipeline` 处理，我们只要在 `pipeline` 内进行持久化操作即可。
+
+修改【pipelines.py】文件：
+
+```py
+# -*- coding: utf-8 -*-
+
+# Define your item pipelines here
+#
+# Don't forget to add your pipeline to the ITEM_PIPELINES setting
+# See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
+
+from scrapy.utils.project import get_project_settings
+import pymysql
+
+
+class HiScrapyPipeline(object):
+    def __init__(self):
+        settings = get_project_settings()
+        self.db_conn = pymysql.connect(
+            host=settings['MYSQL_HOST'],
+            port=settings['MYSQL_PORT'],
+            db=settings['MYSQL_DBNAME'],
+            user=settings['MYSQL_USER'],
+            passwd=settings['MYSQL_PASSWD'],
+            charset='utf8'
+        )
+
+    # 打开数据库
+    def open_spider(self, spider):
+        self.db_cur = self.db_conn.cursor()
+
+    # 爬取结束，提交sql，关闭连接
+    def close_spider(self, spider):
+        self.db_conn.commit()
+        self.db_conn.close()
+
+    # 对数据进行处理
+    def process_item(self, item, spider):
+        self.add_news(item)
+        return item
+
+    # 新增新闻业务
+    def add_news(self, item):
+        values = (item['title'], item['summary'], item['author'], item['read_count'], item['pub_date'])
+
+        sql = "insert into aiit_news(title,summary,author,read_count,pub_date) values (%s,%s,%s,%s,%s)"
+        self.db_cur.execute(sql, values)
 
 ```
 
