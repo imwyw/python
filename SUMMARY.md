@@ -8,10 +8,10 @@
 
 * [应用]()
     * [爬虫](./应用/Spider.md)
-    * [Flask](./应用/Flask.md)
+    * [Scrapy](./应用/Scrapy.md)
     * [MySql](./应用/PyMySql.md)
     * [Django](./应用/Django.md)
-    * [Scrapy](./应用/Scrapy.md)
+    * [Flask](./应用/Flask.md)
     * [爬虫案例](./应用/SpiderProject.md)
 
 
