@@ -19,6 +19,8 @@
             - [批量插入数据](#批量插入数据)
     - [资源下载](#资源下载)
         - [图片保存](#图片保存)
+        - [图片路径和判断](#图片路径和判断)
+        - [下载路径异常](#下载路径异常)
     - [疑难杂症](#疑难杂症)
         - [Permission denied](#permission-denied)
     - [其他工具](#其他工具)
@@ -373,8 +375,6 @@ class HiScrapyPipeline(object):
         # 每插入一条就提交
         self.db_cur.execute(sql, values)
         self.db_conn.commit()
-
-
 ```
 
 <a id="markdown-批量插入数据" name="批量插入数据"></a>
@@ -445,8 +445,166 @@ class HiScrapyPipeline(object):
 
 <a id="markdown-图片保存" name="图片保存"></a>
 ### 图片保存
+内置的 `ImagesPipeline` 会默认读取 `Item` 的 `image_urls` 字段，并认为该字段是一个列表形式，
+
+它会遍历Item的image_urls字段，然后取出每个URL进行图片下载，但此种方式通常并不适合我们使用。
+
+推荐自定义 `ImagePipeline` 的方式实现图片下载保存。
+
+1. 定义存储文件的路径，需要定义一个 `IMAGES_STORE` 变量，在【settings.py】中添加如下代码：
+
+```py
+# 相对路径保存下载的图片
+IMAGES_STORE = './images'
+```
+
+2. 修改 `Item` 类，增加图片 `url` 链接属性，修改【items.py】文件
+
+```py
+# 学校要闻类
+class NewsItem(scrapy.Item):
+    # 新闻标题
+    title = scrapy.Field()
+    # 摘要信息
+    summary = scrapy.Field()
+    # 发布者
+    author = scrapy.Field()
+    # 阅读量
+    read_count = scrapy.Field()
+    # 发布日期
+    pub_date = scrapy.Field()
+    # 图片资源地址，新增属性！
+    img_url = scrapy.Field()
+```
+
+3. 修改爬虫文件 spider 中 parse 方法，添加图片url信息的赋值：
+
+```py
+def parse(self, response):
+    # xpath 进行筛选学校要闻项
+    news_selector = response.xpath('//div[@class="content"]/div[contains(@class,"content-div")]')
+
+    for news_item in news_selector:
+            news_obj = NewsItem()
+            # //div[contains(@class,"title")] 筛选样式中包含了title类的div标签
+            news_obj['title'] = news_item.xpath('.//div[contains(@class,"title")]/a/text()').get()
+            content_selector = news_item.xpath('./div[@class="contents"]')
+            news_obj['summary'] = content_selector.xpath('./p/text()').get()
+            news_obj['author'] = content_selector.xpath('./span[1]/text()').get()
+            news_obj['read_count'] = content_selector.xpath('./span[2]/text()').get()
+            news_obj['pub_date'] = content_selector.xpath('./span[3]/text()').get()
+
+            # 解析图片标签的src，可以在浏览器中测试图片能否显示
+            news_obj['img_url'] = 'https://www.aiit.edu.cn' + news_item.xpath('.//div[@class="pic"]/img/@src').get()
+
+            yield news_obj
+
+    # 找到下一页按钮对应的链接
+    next_link = response.xpath('//ul[@id="pagination-digg"]/li/a[text()="下一页"]/@href').get()
+    print(next_link)
+    if next_link:
+        yield scrapy.Request(next_link, callback=self.parse)
+```
+
+4. 在原有的【Pipelines.py】文件中新增 `NewsImagePipeline` 管道处理：
+
+```py
+from scrapy import Request
+from scrapy.pipelines.images import ImagesPipeline
 
 
+# 自定义一个图片下载器
+class NewsImagePipeline(ImagesPipeline):
+    # 处理spider生成的item对象，此Request加入到调度队列，等待被调度，执行下载。
+    def get_media_requests(self, item, info):
+        yield Request(item['img_url'])
+```
+
+`get_media_requests()` 它的第一个参数item是爬取生成的Item对象。
+
+我们将它的url字段取出来，然后直接生成Request对象。
+
+此Request加入到调度队列，等待被调度，执行下载。
+
+5. 在【setting.py】中新增刚刚配置的 `pipeline` 的配置：
+
+```py
+# Configure item pipelines
+# See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
+ITEM_PIPELINES = {
+    'hi_scrapy.pipelines.HiScrapyPipeline': 300,
+    'hi_scrapy.pipelines.NewsImagePipeline': 301
+}
+```
+
+需要注意的是，管道的执行是有顺序的，数字小的优先执行！
+
+执行爬虫观察图片是否已经下载到指定文件夹。
+
+<a id="markdown-图片路径和判断" name="图片路径和判断"></a>
+### 图片路径和判断
+默认的图片保存位置可能并不符合我们的要求，可以重写 `file_path` 方法修改下载保存的位置。
+
+下载图片可能会出现各种问题，比如下载失败，可能就不需要保存数据，可以通过重写 `item_completed` 方法达到目的。
+
+继续优化前面新增的管道类 `NewsImagePipeline` 
+
+```py
+# 自定义一个图片下载器
+class NewsImagePipeline(ImagesPipeline):
+    # 处理spider生成的item对象，此Request加入到调度队列，等待被调度，执行下载。
+    def get_media_requests(self, item, info):
+        yield Request(item['img_url'])
+
+    # 用于返回保存文件的名称，可以不重写
+    def file_path(self, request, response=None, info=None):
+        url = request.url
+        file_name = url.split('/')[-1]
+        return file_name
+
+    # 资源下载后的操作，比如下载成功后才允许其他Pipeline管道进行处理。可以不重写
+    def item_completed(self, results, item, info):
+        # results是list列表，里面元素是tuple元组，用于标记下载是否成功
+        if not results[0][0]:
+            return DropItem('下载失败！')
+        print('下载成功！')
+        return item
+```
+
+<a id="markdown-下载路径异常" name="下载路径异常"></a>
+### 下载路径异常
+在构建 `Item` 对象时，由于新增了图片 `url` 属性，可能会存在某些数据异常，抛出异常导致 `yield` 迭代停止
+
+在 parse 处理过程中添加 try...catch 异常处理，这样即使过程有异常发生，也不会停止爬虫
+
+```py
+def parse(self, response):
+    # xpath 进行筛选学校要闻项
+    news_selector = response.xpath('//div[@class="content"]/div[contains(@class,"content-div")]')
+
+    for news_item in news_selector:
+        try:
+            news_obj = NewsItem()
+            # //div[contains(@class,"title")] 筛选样式中包含了title类的div标签
+            news_obj['title'] = news_item.xpath('.//div[contains(@class,"title")]/a/text()').get()
+            content_selector = news_item.xpath('./div[@class="contents"]')
+            news_obj['summary'] = content_selector.xpath('./p/text()').get()
+            news_obj['author'] = content_selector.xpath('./span[1]/text()').get()
+            news_obj['read_count'] = content_selector.xpath('./span[2]/text()').get()
+            news_obj['pub_date'] = content_selector.xpath('./span[3]/text()').get()
+            news_obj['img_url'] = 'https://www.aiit.edu.cn' + news_item.xpath('.//div[@class="pic"]/img/@src').get()
+
+            yield news_obj
+        except Exception as ex:  # 增加异常捕获，尤其是拼接图片url时很容易出问题，防止爬虫停止
+            print(ex)
+            continue
+
+    # 找到下一页按钮对应的链接
+    next_link = response.xpath('//ul[@id="pagination-digg"]/li/a[text()="下一页"]/@href').get()
+    print(next_link)
+    if next_link:
+        yield scrapy.Request(next_link, callback=self.parse)
+```
 
 <a id="markdown-疑难杂症" name="疑难杂症"></a>
 ## 疑难杂症
