@@ -387,7 +387,7 @@ for i, t in enumerate(nameList):
 <a id="markdown-基于requests的beautifulsoup" name="基于requests的beautifulsoup"></a>
 ### 基于requests的Beautifulsoup
 
-找到所有的标题：
+找到所有新闻的标题：
 
 ```py
 import requests
