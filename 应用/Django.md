@@ -73,20 +73,20 @@ def index(request):
 在同目录文件 【urls.py】 中添加路由信息：
 
 ```py
-from django.conf.urls import url
 from django.contrib import admin
+from django.urls import path
 
 # 引入当前目录文件
 from . import views
 
 # 第一个参数是正则匹配，第二个参数是对应的处理函数，第三个参数是名称
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^index/', views.index),
+    path('admin/', admin.site.urls),
+    path('index/', views.index),
 ]
 ```
 
-在 PyCharm Terminal 终端中输入运行命令： `python manage.py runserver 端口号`
+在 `PyCharm Terminal` 终端中输入运行命令： `python manage.py runserver 端口号`
 
 ```bash
 (C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py runserver 5000
@@ -103,6 +103,18 @@ urlpatterns = [
 输入： `python manage.py startapp 应用名称` ，应用名称不能重复
 
 添加应用名到 【settings.py】 中 `INSTALLED_APPS` 里
+
+```py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'blogs'#添加应用的名称
+]
+```
 
 <a id="markdown-应用目录结构" name="应用目录结构"></a>
 ### 应用目录结构
@@ -146,7 +158,7 @@ def main(request):
 添加应用中的urls配置，新增文件【blog/urls.py】，路由规则如下：
 
 ```py
-from django.conf.urls import url
+from django.urls import path
 from django.contrib import admin
 
 # 引入当前目录文件
@@ -154,7 +166,7 @@ from . import views
 
 # 用法有点类似于 Vue 的嵌套路由 访问url需要结合根url，localhost:5000/blog/index 
 urlpatterns = [
-    url(r'^index/$', views.main)
+    path('index/', views.main)
 ]
 ```
 
@@ -168,8 +180,8 @@ from django.contrib import admin
 from . import views
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^blog/', include('blog.urls'))
+    path('admin/', admin.site.urls),
+    path('blog/', include('blog.urls'))
 ]
 ```
 
