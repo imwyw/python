@@ -23,6 +23,9 @@
         - [下载路径异常](#下载路径异常)
     - [动态页面](#动态页面)
         - [集成Selenium](#集成selenium)
+        - [创建浏览器实例](#创建浏览器实例)
+        - [自定义下载中间件](#自定义下载中间件)
+        - [启用下载中间件](#启用下载中间件)
     - [疑难杂症](#疑难杂症)
         - [Permission denied](#permission-denied)
     - [其他工具](#其他工具)
@@ -629,9 +632,79 @@ def parse(self, response):
 
 <a id="markdown-集成selenium" name="集成selenium"></a>
 ### 集成Selenium
+* 我们在爬取网页时一般会使用到三个爬虫库：requests，scrapy，selenium。requests一般用于小型爬虫，scrapy用于构建大的爬虫项目，而selenium主要用来应付负责的页面（复杂js渲染的页面，请求非常难构造，或者构造方式经常变化）。
+
+* 在我们面对大型爬虫项目时，肯定会优选scrapy框架来开发，但是在解析复杂JS渲染的页面时，又很麻烦。 尽管使用selenium浏览器渲染来抓取这样的页面很方便，这种方式下，我们不需要关心页面后台发生了怎样的请求，也不需要分析整个页面的渲染过程，我们只需要关心页面最终结果即可，可见即可爬，但是selenium的效率又太低。
+
+* 所以，如果可以在scrapy中，集成selenium，让selenium负责复杂页面的爬取，那么这样的爬虫就无敌了，可以爬取任何网站了。
+
+<a id="markdown-创建浏览器实例" name="创建浏览器实例"></a>
+### 创建浏览器实例
+在爬虫应用中操作浏览器对象的实例化和窗口的关闭，修改【aiit_spider.py】文件：
+
+```py
+# -*- coding: utf-8 -*-
+import scrapy
+
+from hi_scrapy.items import NewsItem
+from selenium import webdriver
 
 
+class AiitSpiderSpider(scrapy.Spider):
+    name = "aiit_spider"
+    start_urls = ['https://www.aiit.edu.cn/node/388']
 
+    # 浏览器对象的实例化，在中间件 middlewares 中调用
+    browser = webdriver.Chrome()
+
+    def parse(self, response):
+        # 省略。。。。
+        pass
+
+    # 爬虫应用关闭
+    def close(self, spider, reason):
+        self.browser.close()
+
+```
+
+开启爬虫时实例化浏览器对象，关闭爬虫时释放浏览器对象，并在下载中间件操作浏览器对象。
+
+<a id="markdown-自定义下载中间件" name="自定义下载中间件"></a>
+### 自定义下载中间件
+创建下载中间件【middlewares_selenium.py】，内容如下：
+
+```py
+from scrapy.http import HtmlResponse
+from time import sleep
+
+# 参考 https://scrapy-chs.readthedocs.io/zh_CN/0.24/topics/downloader-middleware.html#topics-downloader-middleware-setting
+class SeleniumDownloaderMiddleware(object):
+    # 当每个request通过下载中间件时，该方法被调用
+    def process_request(self, request, spider):
+        # 获取在爬虫类中实例化好的浏览器对象
+        browser = spider.browser
+        # 控制浏览器打开目标链接
+        browser.get(request.url)
+        # 等待动态加载数据完成
+        sleep(1)
+        # 获取渲染后的html
+        html = browser.page_source
+        # 构造新的Response，会被spider中的parse继续处理
+        return HtmlResponse(url=browser.current_url, request=request, body=html.encode(), encoding="utf-8")
+
+```
+
+<a id="markdown-启用下载中间件" name="启用下载中间件"></a>
+### 启用下载中间件
+修改【settings.py】中关于 `DOWNLOADER_MIDDLEWARES` 的设置：
+
+```py
+# Enable or disable downloader middlewares
+# See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
+DOWNLOADER_MIDDLEWARES = {
+   'hi_scrapy.middlewares_selenium.SeleniumDownloaderMiddleware': 543,
+}
+```
 
 <a id="markdown-疑难杂症" name="疑难杂症"></a>
 ## 疑难杂症
@@ -671,4 +744,9 @@ PermissionError(13, 'Permission denied')
 
 [Scrapy框架的使用之Item Pipeline的用法](https://juejin.im/post/5af95280f265da0ba17ca1ba)
 
+[如何在scrapy中集成selenium爬取网页](https://blog.csdn.net/zwq912318834/article/details/79773870)
+
+[scrapy结合selenium解析动态页面](https://blog.csdn.net/weixin_44087733/article/details/100552598)
+
+[Scrapy中文](https://scrapy-chs.readthedocs.io/zh_CN/1.0/intro/overview.html)
 
