@@ -5,6 +5,8 @@
     - [基础](#基础)
         - [关键字搜索](#关键字搜索)
         - [猫扑首页](#猫扑首页)
+    - [其他问题](#其他问题)
+        - [路径问题](#路径问题)
 
 <!-- /TOC -->
 
@@ -23,11 +25,19 @@ Selenium with Python中文翻译文档
 pip install selenium
 ```
 
-安装 Chrome 对应的 Chromedriver 工具：
+安装 `Chrome` 对应的 `Chromedriver` 工具：
 
 > http://chromedriver.storage.googleapis.com/index.html
+
 > http://npm.taobao.org/mirrors/chromedriver/
 
+将下载的 `chromedriver.exe` 放到 `python` 环境的 Scripts 的文件夹内即可
+
+如果是 `Anaconda` 默认安装的话，将 `Chromedriver` 工具拷贝到路径：
+
+```
+C:\ProgramData\Anaconda3\Scripts
+```
 
 <a id="markdown-基础" name="基础"></a>
 ## 基础
@@ -116,6 +126,17 @@ finally:
     driver.quit()
 
 ```
+
+<a id="markdown-其他问题" name="其他问题"></a>
+## 其他问题
+
+<a id="markdown-路径问题" name="路径问题"></a>
+### 路径问题
+
+`Selenium配合chromedriver提示“Message: 'chromedriver' executable needs to be in PATH.Please see ...”`
+
+参考安装章节 `chromedriver` 工具拷贝方法即可。
+
 
 
 

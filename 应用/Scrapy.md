@@ -21,6 +21,8 @@
         - [图片保存](#图片保存)
         - [图片路径和判断](#图片路径和判断)
         - [下载路径异常](#下载路径异常)
+    - [动态页面](#动态页面)
+        - [集成Selenium](#集成selenium)
     - [疑难杂症](#疑难杂症)
         - [Permission denied](#permission-denied)
     - [其他工具](#其他工具)
@@ -605,6 +607,31 @@ def parse(self, response):
     if next_link:
         yield scrapy.Request(next_link, callback=self.parse)
 ```
+
+<a id="markdown-动态页面" name="动态页面"></a>
+## 动态页面
+在 `https://www.aiit.edu.cn/node/388` 新闻列表中，虽然页面显示阅读人数，
+
+但是使用 `spider` 进行爬取时，阅读人数 `span` 内显示为 `0` ，具体的数字通过 JavaScript 脚本动态加载得出。
+
+```html
+<span class="121244">765748</span>
+<script type="text/javascript">
+    $(".121244").load("https://www.aiit.edu.cn/info_views/121244?d="+new Date()*1);
+</script>
+```
+
+有两种方式可以获取动态页面的内容：
+* 破解JS，实现动态渲染
+* 使用浏览器模拟操作，等待模拟浏览器完成页面渲染
+
+通常我们都会选择第二个方法
+
+<a id="markdown-集成selenium" name="集成selenium"></a>
+### 集成Selenium
+
+
+
 
 <a id="markdown-疑难杂症" name="疑难杂症"></a>
 ## 疑难杂症

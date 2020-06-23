@@ -8,6 +8,7 @@
 
 * [应用]()
     * [爬虫](./应用/Spider.md)
+    * [Selenium](./应用/Selenium.md)
     * [Scrapy](./应用/Scrapy.md)
     * [MySql](./应用/PyMySql.md)
     * [Django](./应用/Django.md)
