@@ -194,7 +194,9 @@ urlpatterns = [
 
 <a id="markdown-render" name="render"></a>
 ### render
-在【Templates】目录中创建HTML文件，在【views.py】处理请求方法中返回 `render()` 
+在根路径下创建【templates】目录，用于存放前端页面文件
+
+在【views.py】处理请求方法中通过 `render()` 返回对应的前端页面
 
 【templates/index.html】
 
@@ -224,10 +226,32 @@ def index(request):
     return render(request, 'index.html', {'site_name': '知乎'})
 ```
 
+如果显示 `TemplateDoesNotExist at /index/` 问题，因为 Django 3.0 创建模板没有配置默认的 `Template DIR`
+
+修改配置【settings.py】中的 TEMPLATES 配置项：
+
+```py
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+```
+
 <a id="markdown-应用下的render" name="应用下的render"></a>
 ### 应用下的render
 
-前面创建 blog 应用，也可以渲染静态页面，创建应用 blog 对应【templates/blog】文件夹，在该文件夹中新建HTML
+前面创建 `blog` 应用，也可以渲染静态页面，创建应用 `blog` 对应【templates/blog】文件夹，在该文件夹中新建HTML
 
 【templates/blog/main.html】
 
