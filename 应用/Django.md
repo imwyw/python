@@ -55,7 +55,7 @@ python manage.py runserver
 
 【settings.py】包含数据库、web应用、时间等配置
 
-【__init__.py】声明模块的文件
+【`__init__.py`】声明模块的文件
 
 <a id="markdown-第一个页面" name="第一个页面"></a>
 ### 第一个页面
@@ -63,7 +63,6 @@ python manage.py runserver
 在【项目名称】文件夹中添加 【views.py】 处理文件，用于处理请求并响应
 
 ```py
-from django.shortcuts import render
 from django.http import HttpResponse
 
 def index(request):
@@ -98,11 +97,13 @@ urlpatterns = [
 <a id="markdown-应用模块" name="应用模块"></a>
 ## 应用模块
 
-打开 `cmd` 命令行，进入项目中 【manage.py】 统计目录
+打开 `cmd` 命令行，进入项目中 【manage.py】 同级目录
+
+或者直接在 `pycharm terminal` 终端窗口中操作：
 
 输入： `python manage.py startapp 应用名称` ，应用名称不能重复
 
-添加应用名到 【settings.py】 中 `INSTALLED_APPS` 里
+然后，添加应用名到 【settings.py】 中 `INSTALLED_APPS` 里
 
 ```py
 INSTALLED_APPS = [
@@ -115,6 +116,8 @@ INSTALLED_APPS = [
     'blogs'#添加应用的名称
 ]
 ```
+
+这样，新添加的应用才会起作用。
 
 <a id="markdown-应用目录结构" name="应用目录结构"></a>
 ### 应用目录结构
@@ -140,9 +143,9 @@ views.py
 <a id="markdown-应用页面和url" name="应用页面和url"></a>
 ### 应用页面和url
 
-在 PyCharm Terminal 终端中输入运行命令： `python manage.py startapp blog`
+创建应用后，在应用文件夹下会自动生成对应的 【blog/views.py】 文件
 
-创建应用【blog】，同样的在 【blog/views.py】 中添加请求处理方法如下：
+新增处理方法 `main(request)` 
 
 ```py
 from django.shortcuts import render
@@ -155,7 +158,7 @@ def main(request):
     return HttpResponse('this is blog view!')
 ```
 
-添加应用中的urls配置，新增文件【blog/urls.py】，路由规则如下：
+添加应用中的 `urls` 配置，新增文件【blog/urls.py】，路由规则如下：
 
 ```py
 from django.urls import path
@@ -164,13 +167,13 @@ from django.contrib import admin
 # 引入当前目录文件
 from . import views
 
-# 用法有点类似于 Vue 的嵌套路由 访问url需要结合根url，localhost:5000/blog/index 
+# 用法有点类似于 Vue 的嵌套路由 访问url需要结合根url配置，localhost:5000/blog/index 
 urlpatterns = [
     path('index/', views.main)
 ]
 ```
 
-在根urls中添加配置，修改【项目名称/urls.py】文件，新增引入 include 支持
+在根 `urls` 中添加配置，修改【项目名称/urls.py】文件，导入 `include` 方法
 
 ```py
 from django.conf.urls import url, include
