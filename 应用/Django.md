@@ -17,7 +17,8 @@
             - [pymysql导入安装](#pymysql导入安装)
             - [inspectdb生成model](#inspectdb生成model)
             - [页面数据展现](#页面数据展现)
-            - [条件筛选](#条件筛选)
+            - [QuerySet条件筛选](#queryset条件筛选)
+            - [Q对象动态查询](#q对象动态查询)
     - [Admin](#admin)
         - [创建用户](#创建用户)
         - [配置models](#配置models)
@@ -550,8 +551,40 @@ def main(request):
 </html>
 ```
 
-<a id="markdown-条件筛选" name="条件筛选"></a>
-#### 条件筛选
+<a id="markdown-queryset条件筛选" name="queryset条件筛选"></a>
+#### QuerySet条件筛选
+
+字段名 | 说明
+----|---
+exact | 精确匹配
+iexact | 不区分大小写的精确匹配
+contains | 包含匹配
+icontains | 不区分大小写的包含匹配
+in | 在..之内的匹配
+gt | 大于
+gte | 大于等于
+lt | 小于
+lte | 小于等于
+startswith | 从开头匹配
+istartswith | 不区分大小写从开头匹配
+endswith | 从结尾处匹配
+iendswith | 不区分大小写从结尾处匹配
+range | 范围匹配
+date | 日期匹配
+year | 年份
+month | 月份
+day | 日期
+week | 第几周
+week_day | 周几
+time | 时间
+hour | 小时
+minute | 分钟
+second | 秒
+isnull | 判断是否为空
+search | 1.10中被废弃
+regex | 区分大小写的正则匹配
+iregex | 不区分大小写的正则匹配
+
 对新闻的标题进行模糊匹配筛选，修改应用下视图文件【blog/views.py】：
 
 ```py
@@ -580,6 +613,68 @@ def main(request):
     return render(request, 'blogs/blog_list.html', {'news_list': result})
 ```
 
+<a id="markdown-q对象动态查询" name="q对象动态查询"></a>
+#### Q对象动态查询
+在 `filter()` 中使用多个关键字参数查询，对应到数据库中是使用 AND 连接起来的。
+
+如果你想使用更复杂的查询（例如，使用 OR 语句的查询），可以使用 Q 对象。
+
+下例使用 Q 对象实现同样筛选的功能：
+
+```py
+from django.shortcuts import render
+from . import models
+from django.db.models import Q
+
+
+# Create your views here.
+def main(request):
+    # 筛选发布方是 '新闻中心'，并且日期大于等于 2020-6-1
+    result = models.AiitNews.objects.filter(Q(author='新闻中心'),Q(pub_date__gte='2020-6-1'))
+    return render(request, 'blogs/blog_list.html', {'news_list': result})
+```
+
+更多时候，为了适配动态的多条件查询，我们可以这样写：
+
+```py
+from django.shortcuts import render
+from . import models
+from django.db.models import Q
+
+import operator
+from functools import reduce
+
+
+# Create your views here.
+def main(request):
+    # 构造来自客户端的查询参数
+    condition_summary = '疫情'
+    condition_author = '教务处'
+    condition_start_date = '2020-6-1'
+
+    # 最终的查询 Q 对象
+    query_condition = []
+
+    # 判断是否有摘要信息参数
+    if condition_summary:
+        q_dict = {'summary__contains': condition_summary}
+        query_condition.append(Q(**q_dict))
+
+    # 判断是否有发布方参数
+    if condition_author:
+        q_dict = {'author__contains': condition_author}
+        query_condition.append(Q(**q_dict))
+
+    # 判断是否有发布时间参数
+    if condition_start_date:
+        q_dict = {'pub_date__gte': condition_start_date}
+        query_condition.append(Q(**q_dict))
+
+    # 动态条件的筛选，根据前端传递的参数决定有哪些查询参数
+    result = models.AiitNews.objects.filter(reduce(operator.and_, query_condition))
+    return render(request, 'blogs/blog_list.html', {'news_list': result})
+
+```
 
 
 <a id="markdown-admin" name="admin"></a>
@@ -1112,4 +1207,11 @@ Running migrations:
 [Django从已存在的Mysql数据库表开始项目](https://blog.csdn.net/m0_37422289/article/details/82386621)
 
 [Django Models 多条件查询 以及Q/F查询](https://my.oschina.net/esdn/blog/834943)
+
+[Django2.0入门教程](https://www.django.cn/course/course-1.html)
+
+[查询参数及聚合函数](https://www.liujiangblog.com/course/django/132)
+
+
+
 
