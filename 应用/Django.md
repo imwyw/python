@@ -16,6 +16,7 @@
         - [mysql数据库](#mysql数据库)
             - [pymysql导入安装](#pymysql导入安装)
             - [inspectdb生成model](#inspectdb生成model)
+            - [mysql数据迁移](#mysql数据迁移)
             - [页面数据展现](#页面数据展现)
             - [QuerySet条件筛选](#queryset条件筛选)
             - [Q对象动态查询](#q对象动态查询)
@@ -398,6 +399,7 @@ def main(request):
 
 <a id="markdown-mysql数据库" name="mysql数据库"></a>
 ### mysql数据库
+
 <a id="markdown-pymysql导入安装" name="pymysql导入安装"></a>
 #### pymysql导入安装
 高版本的 `Django` 集成 `MySql` 时可能会遇到兼容性问题：
@@ -419,7 +421,7 @@ pymysql.version_info = (1, 3, 13, 'final', 0)
 pymysql.install_as_MySQLdb()
 ```
 
-导入 pymysql 后，确保
+导入 pymysql 后，确保项目可以正常执行
 
 <a id="markdown-inspectdb生成model" name="inspectdb生成model"></a>
 #### inspectdb生成model
@@ -512,6 +514,87 @@ class AiitNews(models.Model):
         db_table = 'aiit_news'
 
 ```
+
+<a id="markdown-mysql数据迁移" name="mysql数据迁移"></a>
+#### mysql数据迁移
+我们已经从数据表生成到了 `models` 模型，为了后续的 `admin` 管理等模块，还需要进行 `migrate` 迁移
+
+先执行 `makemigrations` 生成脚本：
+
+```bash
+(D:\Anaconda3) D:\Codes\Py\aiit_web>python manage.py makemigrations
+Migrations for 'blogs':
+  blogs\migrations\0001_initial.py
+    - Create model AiitNews
+```
+
+`inspect` 得到的模型中 `model managed` 管理设置为 `False` ，即默认不需要由 `models` 进行表结构的维护。
+
+当然，我们也可以将 `models.py` 中 `AiitNews` 类的内部类 `Meta managed` 属性修改为 `True` 
+
+删除【0001_initial.py】，重新执行命令 `python manage.py makemigrations`
+
+还可以通过生成 sql 脚本来进行具体观察：`python manage.py sqlmigrate blogs 0001`
+
+修改【`__init__.py`】增加mysql日期类型的映射，以防创建 `admin` 模块数据表时发生异常
+
+```py
+import pymysql
+
+'''
+Django 3.0 和 pymysql 报以下错误，
+mysqlclient 1.3.13 or newer is required; you have 0.7.9.None.
+简单粗暴的解决方案，直接修改版本信息
+'''
+pymysql.version_info = (1, 3, 13, 'final', 0)
+
+pymysql.install_as_MySQLdb()
+
+from django.db.backends.mysql.base import DatabaseWrapper
+
+# 因为Django2.2+ 和 MySQL5.5 的日期时间字段映射有问题，需要调整
+DatabaseWrapper.data_types['DateTimeField'] = 'datetime'
+
+```
+
+首次数据迁移 `migrate` 时，需要使用 `--fake-initial` 参数，因为数据库已经存在，不带 `--fake` 会报错且迁移不成功。
+
+```py
+(D:\Anaconda3) D:\Codes\Py\aiit_web>python manage.py migrate --fake-initial
+Operations to perform:
+  Apply all migrations: admin, auth, blogs, contenttypes, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying blogs.0001_initial... OK
+  Applying sessions.0001_initial... OK
+
+                Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying blogs.0001_initial... OK
+  Applying sessions.0001_initial... OK
+
+```
+
+观察数据库中是否已新增 `auth_` 开头和 `django_` 开头的表，自动添加的这些表我们在后面会用到。
 
 <a id="markdown-页面数据展现" name="页面数据展现"></a>
 #### 页面数据展现
@@ -687,7 +770,7 @@ Django 提供了许多针对Admin的定制功能
 
 <a id="markdown-创建用户" name="创建用户"></a>
 ### 创建用户
-创建用户 `python manage.py createsuperuser` 创建超级用户
+创建超级用户 `python manage.py createsuperuser` 
 
 ```bash
 (C:\ProgramData\Anaconda3) D:\Codes\Py\hello_dj>python manage.py createsuperuser
