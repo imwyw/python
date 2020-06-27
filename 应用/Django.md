@@ -16,6 +16,8 @@
         - [mysql数据库](#mysql数据库)
             - [pymysql导入安装](#pymysql导入安装)
             - [inspectdb生成model](#inspectdb生成model)
+            - [页面数据展现](#页面数据展现)
+            - [条件筛选](#条件筛选)
     - [Admin](#admin)
         - [创建用户](#创建用户)
         - [配置models](#配置models)
@@ -483,6 +485,102 @@ class AiitNews(models.Model):
 ```bash
 (D:\Anaconda3) D:\Codes\Py\aiit_web>python manage.py inspectdb > ./blogs/models.py
 ```
+
+在指定目录下生成或覆盖【models.py】模型文件：
+
+```py
+# This is an auto-generated Django model module.
+# You'll have to do the following manually to clean this up:
+#   * Rearrange models' order
+#   * Make sure each model has one field with primary_key=True
+#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
+#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
+# Feel free to rename the models, but don't rename db_table values or field names.
+from django.db import models
+
+
+class AiitNews(models.Model):
+    title = models.CharField(max_length=100, blank=True, null=True)
+    summary = models.CharField(max_length=1000, blank=True, null=True)
+    author = models.CharField(max_length=50, blank=True, null=True)
+    read_count = models.IntegerField(blank=True, null=True)
+    pub_date = models.DateField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'aiit_news'
+
+```
+
+<a id="markdown-页面数据展现" name="页面数据展现"></a>
+#### 页面数据展现
+修改应用下视图文件【blog/views.py】
+
+```py
+from django.shortcuts import render
+from . import models
+
+
+# Create your views here.
+def main(request):
+    # models.AiitNews.objects.all() 所有新闻列表，截取前10条记录
+    result = models.AiitNews.objects.all()[0:10]
+    return render(request, 'blogs/blog_list.html', {'news_list': result})
+```
+
+修改对应的【blog_list.html】文件，使用模板语法循环展现对应的新闻信息：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>新闻列表</title>
+</head>
+<body>
+<h1>
+    新闻列表
+</h1>
+{% for article_item in news_list %}
+    <span>第{{ forloop.counter }}个----</span>
+    {{ article_item.title }}
+    <hr>
+{% endfor %}
+</body>
+</html>
+```
+
+<a id="markdown-条件筛选" name="条件筛选"></a>
+#### 条件筛选
+对新闻的标题进行模糊匹配筛选，修改应用下视图文件【blog/views.py】：
+
+```py
+from django.shortcuts import render
+from . import models
+
+
+# Create your views here.
+def main(request):
+    # 筛选 title 中包含有 '芜湖' 关键字的新闻列表
+    result = models.AiitNews.objects.filter(title__contains='芜湖')
+    return render(request, 'blogs/blog_list.html', {'news_list': result})
+```
+
+多条件匹配筛选，修改应用下视图文件【blog/views.py】：
+
+```py
+from django.shortcuts import render
+from . import models
+
+
+# Create your views here.
+def main(request):
+    # 筛选发布方是 '新闻中心'，并且日期大于等于 2020-6-1
+    result = models.AiitNews.objects.filter(author='新闻中心', pub_date__gte='2020-6-1')
+    return render(request, 'blogs/blog_list.html', {'news_list': result})
+```
+
+
 
 <a id="markdown-admin" name="admin"></a>
 ## Admin
@@ -1004,13 +1102,6 @@ Running migrations:
 
 
 
-
-
-
-
-
-
-
 ----
 
 
@@ -1019,4 +1110,6 @@ Running migrations:
 [Django 使用现有数据库生成 models](https://www.jianshu.com/p/037bd7e20a7a)
 
 [Django从已存在的Mysql数据库表开始项目](https://blog.csdn.net/m0_37422289/article/details/82386621)
+
+[Django Models 多条件查询 以及Q/F查询](https://my.oschina.net/esdn/blog/834943)
 
