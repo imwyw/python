@@ -949,8 +949,8 @@ from . import views
 
 # 用法有点类似于 Vue 的嵌套路由
 urlpatterns = [
-    url(r'^index/$', views.main),
-    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page),# P<article_id>[0-9]+ 正则匹配数字
+    path('index/', views.main),
+    path('article/<int:article_id>', views.article_page),
 ]
 ```
 
@@ -981,13 +981,13 @@ from django.contrib import admin
 from . import views
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^index/', views.index),
-    url(r'^blog/', include(('blog.urls', 'blog'), namespace='blog'))
+    path('admin/', admin.site.urls),
+    path('index/', views.index),
+    path('blog/', include(('blog.urls', 'blog'), namespace='blog'))
 ]
 ```
 
-增加了 `namespace` `的配置，include` 第一个参数为元组，配置应用 `urls` 和 `app_name` 
+增加了 `namespace` 的配置，`include` 第一个参数为元组，配置应用 `urls` 和 `app_name` 
 
 配置应用下的urls，【blog/urls.py】：
 
@@ -1000,8 +1000,8 @@ from . import views
 
 # 用法有点类似于 Vue 的嵌套路由
 urlpatterns = [
-    url(r'^index/$', views.main),
-    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page, name='article_page'),  # P<article_id>[0-9]+ 正则匹配数字
+    path('index/', views.main),
+    path('article/<int:article_id>', views.article_page, name='article_page'),
 ]
 ```
 
@@ -1089,10 +1089,10 @@ def save_article(request):
 
 ```py
 urlpatterns = [
-    url(r'^index/$', views.main),
-    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page, name='article_page'),  # P<article_id>[0-9]+ 正则匹配数字
-    url(r'^edit$', views.edit_article, name='edit_article'),
-    url(r'^save$', views.save_article, name='save_article')
+    path('index/', views.main),
+    path('article/<int:article_id>', views.article_page, name='article_page'),
+    path('edit', views.edit_article, name='edit_article'),
+    path('save', views.save_article, name='save_article')
 ]
 ```
 
@@ -1184,10 +1184,10 @@ def save_article(request):
 
 ```py
 urlpatterns = [
-    url(r'^index/$', views.main),
-    url(r'^article/(?P<article_id>[0-9]+)$', views.article_page, name='article_page'),  # P<article_id>[0-9]+ 正则匹配数字
-    url(r'^edit/(?P<article_id>[0-9]+)$', views.edit_article, name='edit_article'),
-    url(r'^save/$', views.save_article, name='save_article')
+    path('index/', views.main),
+    path('article/<int:article_id>', views.article_page, name='article_page'),
+    path('edit/<int:article_id>', views.edit_article, name='edit_article'),
+    path('save/', views.save_article, name='save_article')
 ]
 ```
 
