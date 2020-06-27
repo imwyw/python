@@ -7,10 +7,15 @@
         - [应用目录结构](#应用目录结构)
         - [应用页面和url](#应用页面和url)
     - [模板Templates](#模板templates)
-        - [render](#render)
-        - [应用下的render](#应用下的render)
+        - [render()](#render)
+        - [TemplateDoesNotExist](#templatedoesnotexist)
+        - [应用下的render()](#应用下的render)
     - [Models模块](#models模块)
+        - [sqlite迁移](#sqlite迁移)
         - [数据的呈现](#数据的呈现)
+        - [mysql数据库](#mysql数据库)
+            - [pymysql导入安装](#pymysql导入安装)
+            - [inspectdb生成model](#inspectdb生成model)
     - [Admin](#admin)
         - [创建用户](#创建用户)
         - [配置models](#配置models)
@@ -193,7 +198,7 @@ urlpatterns = [
 - HTML文件，DTL（Django Template Language）模板语言
 
 <a id="markdown-render" name="render"></a>
-### render
+### render()
 在根路径下创建【templates】目录，用于存放前端页面文件
 
 在【views.py】处理请求方法中通过 `render()` 返回对应的前端页面
@@ -226,6 +231,9 @@ def index(request):
     return render(request, 'index.html', {'site_name': '知乎'})
 ```
 
+<a id="markdown-templatedoesnotexist" name="templatedoesnotexist"></a>
+### TemplateDoesNotExist
+
 如果显示 `TemplateDoesNotExist at /index/` 问题，因为 Django 3.0 创建模板没有配置默认的 `Template DIR`
 
 修改配置【settings.py】中的 TEMPLATES 配置项：
@@ -249,7 +257,7 @@ TEMPLATES = [
 ```
 
 <a id="markdown-应用下的render" name="应用下的render"></a>
-### 应用下的render
+### 应用下的render()
 
 前面创建 `blog` 应用，也可以渲染静态页面，创建应用 `blog` 对应【templates/blog】文件夹，在该文件夹中新建HTML
 
@@ -285,9 +293,12 @@ def main(request):
 
 <a id="markdown-models模块" name="models模块"></a>
 ## Models模块
-通常，一个 Model 对应数据库的一张数据表
 
-Django 中 Models 以`类`的形式出现，包含了基本字段和数据的行为。
+<a id="markdown-sqlite迁移" name="sqlite迁移"></a>
+### sqlite迁移
+简单的说，先创建数据对应的模型 Models ，然后根据模型迁移生成数据库表结构
+
+Django 中 `Models` 以 `类` 的形式出现，包含了基本字段和数据的行为。
 
 ORM，对象关系映射 Object Relation Mapping，实现了对象和数据库的映射。
 
@@ -342,7 +353,6 @@ COMMIT;
 
 可以使用 Navicat 或者 SqliteExpertPersonal 工具打开管理数据库文件。
 
-
 <a id="markdown-数据的呈现" name="数据的呈现"></a>
 ### 数据的呈现
 
@@ -383,6 +393,96 @@ def main(request):
 </html>
 ```
 
+<a id="markdown-mysql数据库" name="mysql数据库"></a>
+### mysql数据库
+<a id="markdown-pymysql导入安装" name="pymysql导入安装"></a>
+#### pymysql导入安装
+高版本的 `Django` 集成 `MySql` 时可能会遇到兼容性问题：
+
+`mysqlclient 1.3.13 or newer is required; you have 0.7.9.None.`
+
+如果不像降 `Django` 版本的话，可以通过修改 `version_info` 的方式解决，修改项目文件夹下【`__init__.py`】
+
+```py
+import pymysql
+
+'''
+Django 3.0 和 pymysql 报以下错误，
+mysqlclient 1.3.13 or newer is required; you have 0.7.9.None.
+简单粗暴的解决方案，直接修改版本信息
+'''
+pymysql.version_info = (1, 3, 13, 'final', 0)
+
+pymysql.install_as_MySQLdb()
+```
+
+导入 pymysql 后，确保
+
+<a id="markdown-inspectdb生成model" name="inspectdb生成model"></a>
+#### inspectdb生成model
+前面案例中，我们先确定 model 模型，再使用迁移命令生成对应的数据表，和相应的数据维护。
+
+在与 Scrapy 集成时，由于前期爬虫项目中我们已经创建好了数据库，此时我们需要使用 `inspectdb` 命令根据数据表生成 `models`
+
+首先修改【settings.py】中数据库连接配置：
+
+```py
+# Database
+# https://docs.djangoproject.com/en/3.0/ref/settings/#databases
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#     }
+# }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+        'HOST': '127.0.0.1',  # mysql服务器的域名和ip地址
+        'PORT': '3306',  # mysql的一个端口号,默认是3306
+        'NAME': 'db_aiit',  # 数据库名称
+        'USER': 'root',  # 链接数据库的用户名
+        'PASSWORD': '123456',  # 链接数据库的密码
+    }
+}
+```
+
+在终端窗口 `Terminal` 中执行 `python manage.py inspectdb` 检查数据表生成的 models 代码：
+
+```bash
+(D:\Anaconda3) D:\Codes\Py\aiit_web>python manage.py inspectdb
+# This is an auto-generated Django model module.
+# You'll have to do the following manually to clean this up:
+#   * Rearrange models' order
+#   * Make sure each model has one field with primary_key=True
+#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
+#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
+# Feel free to rename the models, but don't rename db_table values or field names.
+from django.db import models
+
+
+class AiitNews(models.Model):
+    title = models.CharField(max_length=100, blank=True, null=True)
+    summary = models.CharField(max_length=1000, blank=True, null=True)
+    author = models.CharField(max_length=50, blank=True, null=True)
+    read_count = models.IntegerField(blank=True, null=True)
+    pub_date = models.DateField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'aiit_news'
+
+```
+
+`inspectdb` 命令会帮我们生成数据库中所有数据表对应的模型 models ，确认无误我们就可以生成 【models.py】文件
+
+`python manage.py inspectdb 文件名称`
+
+```bash
+(D:\Anaconda3) D:\Codes\Py\aiit_web>python manage.py inspectdb > ./blogs/models.py
+```
 
 <a id="markdown-admin" name="admin"></a>
 ## Admin
@@ -914,5 +1014,9 @@ Running migrations:
 ----
 
 
-https://blog.csdn.net/weixin_42134789/article/details/80276855
+[Django 2.0 官方中文文档](https://blog.csdn.net/weixin_42134789/article/details/80276855)
+
+[Django 使用现有数据库生成 models](https://www.jianshu.com/p/037bd7e20a7a)
+
+[Django从已存在的Mysql数据库表开始项目](https://blog.csdn.net/m0_37422289/article/details/82386621)
 

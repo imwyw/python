@@ -26,6 +26,7 @@
         - [创建浏览器实例](#创建浏览器实例)
         - [自定义下载中间件](#自定义下载中间件)
         - [启用下载中间件](#启用下载中间件)
+        - [提高效率](#提高效率)
     - [疑难杂症](#疑难杂症)
         - [Permission denied](#permission-denied)
     - [其他工具](#其他工具)
@@ -705,6 +706,11 @@ DOWNLOADER_MIDDLEWARES = {
    'hi_scrapy.middlewares_selenium.SeleniumDownloaderMiddleware': 543,
 }
 ```
+
+<a id="markdown-提高效率" name="提高效率"></a>
+### 提高效率
+
+TODO 开启下载器中间件后，导致
 
 <a id="markdown-疑难杂症" name="疑难杂症"></a>
 ## 疑难杂症
