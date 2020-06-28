@@ -1016,7 +1016,8 @@ urlpatterns = [
 </head>
 <body>
 <h1>
-    <a href="">发表新文章</a>
+    <!-- article_id=0 传值，0 表示新增的情况 -->
+    <a href="{% url 'blog:edit_article' article_id=0 %}">发表新文章</a>
 </h1>
 
 <hr>
