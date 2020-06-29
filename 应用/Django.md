@@ -35,6 +35,7 @@
     - [静态文件管理](#静态文件管理)
     - [异步数据交互](#异步数据交互)
         - [数据的获取](#数据的获取)
+        - [提交数据](#提交数据)
 
 <!-- /TOC -->
 
@@ -1424,7 +1425,76 @@ urlpatterns = [
 </html>
 ```
 
+<a id="markdown-提交数据" name="提交数据"></a>
+### 提交数据
+提交对象至服务端：
 
+【views.py】 添加处理方法：
+
+```py
+def add_view(request):
+    return render(request, 'news/add_view.html')
+
+
+def save_ajax(request):
+    print(request.POST)
+    return JsonResponse({'data': None}, safe=False)
+```
+
+【urls.py】 添加路由绑定：
+
+```py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('add/', views.add_view, name='add_view'),
+    path('save_ajax/', views.save_ajax, name='save_ajax'),
+]
+
+```
+
+前端页面进行异步提交，不会有刷新页面的体验：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <title>提交测试</title>
+    <script type="text/javascript" src="{% static 'js/jquery-3.5.1.js' %}"></script>
+</head>
+<body>
+<h1>ajax 提交数据 </h1>
+<form>
+    <fieldset>
+        <input type="text" id="txtTitle" placeholder="请填写标题">
+        <input type="text" id="txtSummary" placeholder="请填写摘要">
+        <input type="text" id="txtAuthor" placeholder="请填写发布方">
+        <input type="date" id="datePub" placeholder="请填写发布日期">
+        <button id="btnPublish">发布</button>
+    </fieldset>
+</form>
+<script>
+    $(function () {
+        $("#btnPublish").click(function (e) {
+            $.post("{% url 'save_ajax' %}", {
+                title: $("#txtTitle").val(),
+                summary: $("#txtSummary").val(),
+                author: $("#txtAuthor").val(),
+                pub_date: $("#datePub").val()
+            }, function (resp) {
+                console.log(resp);
+            });
+            // 阻止表单的默认提交
+            return false;
+        });
+    })
+</script>
+</body>
+</html>
+```
 
 
 ----
