@@ -32,6 +32,9 @@
         - [修改博客](#修改博客)
         - [Templates过滤器](#templates过滤器)
         - [Admin增强](#admin增强)
+    - [静态文件管理](#静态文件管理)
+    - [异步数据交互](#异步数据交互)
+        - [数据的获取](#数据的获取)
 
 <!-- /TOC -->
 
@@ -1279,10 +1282,153 @@ Running migrations:
 
 重新 runserver ，观察 admin 管理页面
 
+<a id="markdown-静态文件管理" name="静态文件管理"></a>
+## 静态文件管理
+网站通常需要提供类似图片，JavaScript 或 CSS 的额外文件服务。
+
+在 Django 中，我们将这些文件称为“静态文件”。
+
+Django 提供了 `django.contrib.staticfiles` 帮你管理静态文件
+
+通常会在根路径下的 【static】 文件夹创建 【js】、【css】、【images】等文件夹保存静态文件。
+
+1. 确保 INSTALLED_APPS 包含了 `django.contrib.staticfiles`。
+
+```py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'news'
+]
+```
+
+2. 在配置文件中，定义 `STATIC_URL` ，例子: `STATIC_URL = '/static/'`
+
+```py
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
+```
+
+3. 在 `DTL` 模板中，用 `static` 模板标签基于配置 `STATICFILES_DIRS` 给定的相对路径构建 URL。
+
+```html
+{% load static %}
+<img src="{% static "images/example.jpg" %}" alt="My image">
+```
+
+<a id="markdown-异步数据交互" name="异步数据交互"></a>
+## 异步数据交互
+几个关键概念：
+
+* 事件绑定
+* ajax
+* jQuery
+
+<a id="markdown-数据的获取" name="数据的获取"></a>
+### 数据的获取
+
+首先在 【views.py】 中添加 json 数据响应：
+
+```py
+def ajax_list(request):
+    # 获取前端传递的参数
+    condition_title = request.POST.get('title')
+    # QuerySet 必须再调用 values 方法获取值内容，否则无法进行json序列号
+    result = models.AiitNews.objects.filter(title__contains=condition_title).values()
+    # 转换为list列表，构造成字典，方便前端进行操作
+    resp = {
+        'data': list(result)
+    }
+    # 序列号时，关闭安全检查
+    return JsonResponse(resp, safe=False)
+```
+
+添加对应的 【urls.py】 路由信息：
+
+```py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('ajax_list/', views.ajax_list, name='ajax_list'),
+]
+
+```
+
+前端页面中通过 ajax 请求并显示至表格中：
+
+```html
+<!DOCTYPE html>
+{#全局导入一次即可#}
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ajax获取数据</title>
+    <script type="text/javascript" src="{% static 'js/jquery-3.5.1.js' %}"></script>
+</head>
+<body>
+
+<div class="condition">
+    <fieldset>
+        <legend>查询条件</legend>
+        <input type="text" id="txtTitle" placeholder="输入标题查询">
+        <button id="btnQuery">查询</button>
+    </fieldset>
+</div>
+<div>
+    <table id="tt" border="1">
+        <thead>
+        <tr>
+            <th>序号</th>
+            <th>标题</th>
+            <th>发布方</th>
+            <th>发布日期</th>
+        </tr>
+        </thead>
+        <tbody id="tt_content"></tbody>
+    </table>
+</div>
+<script>
+    $(function () {
+        $('#btnQuery').click(function () {
+            $.post("{% url 'ajax_list' %}"
+                , {"title": $("#txtTitle").val()}
+                , function (resp) {
+                    $('#tt_content').empty();
+                    resp.data.forEach(function (v, i) {
+                        appendRow2Table(v);
+                    })
+                })
+        })
+    });
+
+    function appendRow2Table(data_item) {
+        var row_html = '<tr>';
+        row_html += '<td>' + data_item.title + '</td>';
+        row_html += '<td>' + data_item.title + '</td>';
+        row_html += '<td>' + data_item.author + '</td>';
+        row_html += '<td>' + data_item.pub_date + '</td>';
+        row_html += '</tr>';
+
+        $("#tt_content").append(row_html);
+    }
+</script>
+</body>
+</html>
+```
+
+
 
 
 ----
-
+参考引用：
 
 [Django 2.0 官方中文文档](https://blog.csdn.net/weixin_42134789/article/details/80276855)
 
