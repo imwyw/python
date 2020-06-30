@@ -41,6 +41,7 @@
         - [应用设置数据库](#应用设置数据库)
         - [针对数据库的inspectdb](#针对数据库的inspectdb)
     - [多表查询](#多表查询)
+        - [raw sql](#raw-sql)
 
 <!-- /TOC -->
 
@@ -1699,7 +1700,7 @@ Target Server Type    : MYSQL
 Target Server Version : 50515
 File Encoding         : 65001
 
-Date: 2020-06-30 23:16:05
+Date: 2020-07-01 00:17:01
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -1722,6 +1723,26 @@ INSERT INTO `course` VALUES ('95031', '计算机导论', '825');
 INSERT INTO `course` VALUES ('95032', '操作系统', '804');
 INSERT INTO `course` VALUES ('95033', '数据电路', '856');
 INSERT INTO `course` VALUES ('95034', '高等数学', '100');
+
+-- ----------------------------
+-- Table structure for `score`
+-- ----------------------------
+DROP TABLE IF EXISTS `score`;
+CREATE TABLE `score` (
+  `sno` varchar(20) NOT NULL,
+  `cno` varchar(20) NOT NULL,
+  `score` decimal(4,2) DEFAULT NULL,
+  PRIMARY KEY (`sno`,`cno`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Records of score
+-- ----------------------------
+INSERT INTO `score` VALUES ('101', '95031', '90.00');
+INSERT INTO `score` VALUES ('101', '95032', '75.00');
+INSERT INTO `score` VALUES ('101', '95033', '87.50');
+INSERT INTO `score` VALUES ('105', '95033', '81.50');
+INSERT INTO `score` VALUES ('109', '95031', '80.50');
 
 -- ----------------------------
 -- Table structure for `student`
@@ -1767,42 +1788,85 @@ INSERT INTO `teacher` VALUES ('804', '李诚', '男', '1958-12-02 00:00:00', '�
 INSERT INTO `teacher` VALUES ('825', '王萍', '女', '1972-05-05 00:00:00', '助教', '计算机系');
 INSERT INTO `teacher` VALUES ('831', '刘冰', '女', '1977-08-14 00:00:00', '助教', '电子工程系');
 INSERT INTO `teacher` VALUES ('856', '张旭', '男', '1969-03-12 00:00:00', '讲师', '电子工程系');
+```
+
+<a id="markdown-raw-sql" name="raw-sql"></a>
+### raw sql
+
+`Django` 模型层提供了 `ForeignKey` 和 `ManyToManyField` 进行多表之间的关联，这一块我们不作为重点，原因有：
+
+* 以模型关联进行操作较为麻烦，设置复杂，且不同框架有不同的设置规则；
+* 模型关联虽然方便，对于非常复杂的关联查询，动辄几百行的sql实在无能为力。
+
+模型多表关联：
+
+> https://www.cnblogs.com/Finley/p/5537753.html
+
+这里我们重点介绍 `raw sql` 原生sql的使用，通用且强大，学习成本也低，前置能力需要掌握表与表之间关联查询
+
+```sql
+-- 查询所有课程信息，包含教师的信息
+SELECT
+	*
+FROM
+	course a
+LEFT JOIN teacher ON a.TNO = teacher.TNO;
+
+-- 查询所有考试成绩，包含学生和课程信息
+SELECT
+	*
+FROM
+	score
+LEFT JOIN student ON score.sno = student.sno
+LEFT JOIN course ON score.cno = course.cno;
+```
+
+直接通过 django 访问数据库，绕过模型层：
+
+对象 `django.db.connection` 代表默认数据库连接。
+
+要使用这个数据库连接，调用 `connection.cursor()` 来获取一个指针对象。
+
+然后，调用 `cursor.execute(sql, [params])` 来执行该 `SQL` 和 `cursor.fetchone()`，或 `cursor.fetchall()` 获取结果数据。
+
+【views.py】中写法如下：
+
+```py
+from django.shortcuts import render
+from django.db import connections
+from collections import namedtuple
+
+
+# Create your views here.
+def stu_list(request):
+    # 注意这里connections带s！！！
+    with connections['db_school'].cursor() as cursor:
+        # 再复杂的sql也不怕
+        cursor.execute('''
+        SELECT
+            a.sno,a.cno,score,sname,ssex,sbirthday,cname
+        FROM
+            score a
+        LEFT JOIN student ON a.sno = student.sno
+        LEFT JOIN course ON a.cno = course.cno
+                ''')
+        result = namedtuplefetchall(cursor)
+    return render(request, 'school/stu_list.html', {'data': result})
+
+
+'''
+转换 tuple 值 为 dict 字典值，方便渲染至前端处理
+参考官网：https://docs.djangoproject.com/el/3.0/topics/db/sql/
+'''
+def namedtuplefetchall(cursor):
+    "Return all rows from a cursor as a namedtuple"
+    desc = cursor.description
+    nt_result = namedtuple('Result', [col[0] for col in desc])
+    return [nt_result(*row) for row in cursor.fetchall()]
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+前端页面中属性和 sql 中字段保持一致即可，代码省略。。。。
 
 
 
@@ -1810,7 +1874,7 @@ INSERT INTO `teacher` VALUES ('856', '张旭', '男', '1969-03-12 00:00:00', '�
 ----
 参考引用：
 
-[Django 2.0 官方中文文档](https://blog.csdn.net/weixin_42134789/article/details/80276855)
+[Django 2.0 CSDN](https://blog.csdn.net/weixin_42134789/article/details/80276855)
 
 [Django 使用现有数据库生成 models](https://www.jianshu.com/p/037bd7e20a7a)
 
@@ -1822,6 +1886,6 @@ INSERT INTO `teacher` VALUES ('856', '张旭', '男', '1969-03-12 00:00:00', '�
 
 [查询参数及聚合函数](https://www.liujiangblog.com/course/django/132)
 
-
+[Django v2.2 官方文档翻译](https://www.bookstack.cn/read/django-v2.2/59593ee9d36b057d.md)
 
 
