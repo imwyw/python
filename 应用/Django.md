@@ -36,6 +36,11 @@
     - [异步数据交互](#异步数据交互)
         - [数据的获取](#数据的获取)
         - [提交数据](#提交数据)
+    - [多数据连接](#多数据连接)
+        - [配置多数据库](#配置多数据库)
+        - [应用设置数据库](#应用设置数据库)
+        - [针对数据库的inspectdb](#针对数据库的inspectdb)
+    - [多表查询](#多表查询)
 
 <!-- /TOC -->
 
@@ -1495,6 +1500,311 @@ urlpatterns = [
 </body>
 </html>
 ```
+
+<a id="markdown-多数据连接" name="多数据连接"></a>
+## 多数据连接
+此处仅仅考虑如何连接多个数据，对于多数据库的同步不做讨论。
+
+
+<a id="markdown-配置多数据库" name="配置多数据库"></a>
+### 配置多数据库
+首先需要在【settings.py】配置中增加数据库配置：
+
+```py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+        'HOST': '127.0.0.1',  # mysql服务器的域名和ip地址
+        'PORT': '3306',  # mysql的一个端口号,默认是3306
+        'NAME': 'db_aiit',  # 数据库名称
+        'USER': 'root',  # 链接数据库的用户名
+        'PASSWORD': '123456',  # 链接数据库的密码
+    },
+    'db_school': {
+        'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+        'HOST': '127.0.0.1',  # mysql服务器的域名和ip地址
+        'PORT': '3306',  # mysql的一个端口号,默认是3306
+        'NAME': 'stu_db',  # 数据库名称
+        'USER': 'root',  # 链接数据库的用户名
+        'PASSWORD': '123456',  # 链接数据库的密码
+    }
+}
+```
+
+以上 `default` 名称建议保留，默认数据库的配置。
+
+每个 `app` 都可以单独设置一个数据库，继续在【settings.py】配置文件中添加配置内容，这些内容在【database_router.py】文件使用到。
+
+```py
+'''
+DATABASE_ROUTERS = ['project_name.database_router.DatabaseAppsRouter']
+database_router.py 文件实现根据app设置数据库，在settings配置中添加
+'''
+DATABASE_ROUTERS = ['aiit_web.database_router.DatabaseAppsRouter']
+# 用于配置不同应用访问的数据库
+DATABASE_APPS_MAPPING = {
+    # example:
+    #'app_name':'database_name',
+}
+```
+
+在项目同名文件夹（【settings.py】文件同级目录）下添加【database_router.py】文件：
+
+```py
+# -*- coding: utf-8 -*-
+from django.conf import settings
+
+DATABASE_MAPPING = settings.DATABASE_APPS_MAPPING
+
+
+class DatabaseAppsRouter(object):
+    """
+    A router to control all database operations on models for different
+    databases.
+
+    In case an app is not set in settings.DATABASE_APPS_MAPPING, the router
+    will fallback to the `default` database.
+
+    Settings example:
+
+    DATABASE_APPS_MAPPING = {'app1': 'db1', 'app2': 'db2'}
+    """
+
+    def db_for_read(self, model, **hints):
+        """"Point all read operations to the specific database."""
+        if model._meta.app_label in DATABASE_MAPPING:
+            return DATABASE_MAPPING[model._meta.app_label]
+        return None
+
+    def db_for_write(self, model, **hints):
+        """Point all write operations to the specific database."""
+        if model._meta.app_label in DATABASE_MAPPING:
+            return DATABASE_MAPPING[model._meta.app_label]
+        return None
+
+    def allow_relation(self, obj1, obj2, **hints):
+        """Allow any relation between apps that use the same database."""
+        db_obj1 = DATABASE_MAPPING.get(obj1._meta.app_label)
+        db_obj2 = DATABASE_MAPPING.get(obj2._meta.app_label)
+        if db_obj1 and db_obj2:
+            if db_obj1 == db_obj2:
+                return True
+            else:
+                return False
+        return None
+
+    # for Django 1.4 - Django 1.6
+    def allow_syncdb(self, db, model):
+        """Make sure that apps only appear in the related database."""
+
+        if db in DATABASE_MAPPING.values():
+            return DATABASE_MAPPING.get(model._meta.app_label) == db
+        elif model._meta.app_label in DATABASE_MAPPING:
+            return False
+        return None
+
+    # Django 1.7 - Django 1.11
+    def allow_migrate(self, db, app_label, model_name=None, **hints):
+        print(db, app_label, model_name, hints)
+        if db in DATABASE_MAPPING.values():
+            return DATABASE_MAPPING.get(app_label) == db
+        elif app_label in DATABASE_MAPPING:
+            return False
+        return None
+
+```
+
+上面这段代码不用纠结，复制贴到你的项目里，确保项目可以正常运行即可。
+
+<a id="markdown-应用设置数据库" name="应用设置数据库"></a>
+### 应用设置数据库
+
+在前面章节的配置中，默认应用会使用 `default` 数据库配置，下面创建一个新的应用，配置不同数据库的访问。
+
+在终端中执行命令，创建应用 `school` 
+
+```bash
+python manage.py startapp school
+```
+
+在【settings.py】中对应用进行挂载，并修改 `DATABASE_APPS_MAPPING` 配置应用访问的数据库：
+
+```py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'news', 
+    'school'
+]
+
+DATABASE_APPS_MAPPING = {
+    # example:
+    # 'app_name':'database_name',
+    'school': 'db_school',
+}
+```
+
+<a id="markdown-针对数据库的inspectdb" name="针对数据库的inspectdb"></a>
+### 针对数据库的inspectdb
+我们进行反向迁移inspect时，由于有多个数据库，需要通过 `--database` 指定数据库迁移
+
+在终端中执行下面的命令检查生成的 `models` 代码：
+
+```bash
+python manage.py inspectdb --database=db_school
+```
+
+确定没有问题，生成到应用目录中：
+
+```bash
+python manage.py inspectdb --database=db_school > ./school/models.py
+```
+
+在【views.py】中添加方法测试即可：
+
+
+```py
+from django.shortcuts import render
+from . import models
+
+
+# Create your views here.
+def stu_list(request):
+    result = models.Student.objects.all()
+    return render(request, 'school/stu_list.html', {'data': result})
+```
+
+该应用中数据的操作均针对我们配置的数据库进行的，其他路由和页面的配置省略。。。
+
+<a id="markdown-多表查询" name="多表查询"></a>
+## 多表查询
+多表查询是模型层的重要功能之一, Django提供了一套基于关联字段独特的解决方案.
+
+这里我们以非常经典的 `student、teacher、course` 为案例实现，sql脚本如下：
+
+```sql
+/*
+Navicat MySQL Data Transfer
+
+Source Server         : mysql
+Source Server Version : 50515
+Source Host           : localhost:3306
+Source Database       : stu_db
+
+Target Server Type    : MYSQL
+Target Server Version : 50515
+File Encoding         : 65001
+
+Date: 2020-06-30 23:16:05
+*/
+
+SET FOREIGN_KEY_CHECKS=0;
+
+-- ----------------------------
+-- Table structure for `course`
+-- ----------------------------
+DROP TABLE IF EXISTS `course`;
+CREATE TABLE `course` (
+  `CNO` varchar(5) NOT NULL,
+  `CNAME` varchar(10) NOT NULL,
+  `TNO` varchar(10) NOT NULL,
+  PRIMARY KEY (`CNO`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of course
+-- ----------------------------
+INSERT INTO `course` VALUES ('95031', '计算机导论', '825');
+INSERT INTO `course` VALUES ('95032', '操作系统', '804');
+INSERT INTO `course` VALUES ('95033', '数据电路', '856');
+INSERT INTO `course` VALUES ('95034', '高等数学', '100');
+
+-- ----------------------------
+-- Table structure for `student`
+-- ----------------------------
+DROP TABLE IF EXISTS `student`;
+CREATE TABLE `student` (
+  `SNO` varchar(3) NOT NULL,
+  `SNAME` varchar(4) NOT NULL,
+  `SSEX` varchar(2) NOT NULL,
+  `SBIRTHDAY` datetime DEFAULT NULL,
+  `CLASS` varchar(5) DEFAULT NULL,
+  PRIMARY KEY (`SNO`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of student
+-- ----------------------------
+INSERT INTO `student` VALUES ('101', '李军', '男', '1976-02-20 00:00:00', '95033');
+INSERT INTO `student` VALUES ('103', '陆君', '男', '1977-06-03 00:00:00', '95031');
+INSERT INTO `student` VALUES ('105', '匡明', '男', '1975-10-02 00:00:00', '95031');
+INSERT INTO `student` VALUES ('107', '王丽', '女', '1976-01-23 00:00:00', '95033');
+INSERT INTO `student` VALUES ('108', '曾华', '男', '1977-09-01 00:00:00', '95033');
+INSERT INTO `student` VALUES ('109', '王芳', '女', '1977-02-10 00:00:00', '95031');
+
+-- ----------------------------
+-- Table structure for `teacher`
+-- ----------------------------
+DROP TABLE IF EXISTS `teacher`;
+CREATE TABLE `teacher` (
+  `TNO` varchar(3) NOT NULL,
+  `TNAME` varchar(4) NOT NULL,
+  `TSEX` varchar(2) NOT NULL,
+  `TBIRTHDAY` datetime NOT NULL,
+  `PROF` varchar(6) DEFAULT NULL,
+  `DEPART` varchar(10) NOT NULL,
+  PRIMARY KEY (`TNO`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of teacher
+-- ----------------------------
+INSERT INTO `teacher` VALUES ('804', '李诚', '男', '1958-12-02 00:00:00', '副教授', '计算机系');
+INSERT INTO `teacher` VALUES ('825', '王萍', '女', '1972-05-05 00:00:00', '助教', '计算机系');
+INSERT INTO `teacher` VALUES ('831', '刘冰', '女', '1977-08-14 00:00:00', '助教', '电子工程系');
+INSERT INTO `teacher` VALUES ('856', '张旭', '男', '1969-03-12 00:00:00', '讲师', '电子工程系');
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ----
