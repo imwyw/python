@@ -756,3 +756,5 @@ PermissionError(13, 'Permission denied')
 
 [Scrapy中文](https://scrapy-chs.readthedocs.io/zh_CN/1.0/intro/overview.html)
 
+[Scrapy 下载器 中间件](https://blog.csdn.net/freeking101/article/details/88019714)
+

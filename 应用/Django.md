@@ -42,6 +42,7 @@
         - [针对数据库的inspectdb](#针对数据库的inspectdb)
     - [多表查询](#多表查询)
         - [raw sql](#raw-sql)
+    - [集成Scrapy spider调用](#集成scrapy-spider调用)
 
 <!-- /TOC -->
 
@@ -1868,6 +1869,33 @@ def namedtuplefetchall(cursor):
 
 前端页面中属性和 sql 中字段保持一致即可，代码省略。。。。
 
+<a id="markdown-集成scrapy-spider调用" name="集成scrapy-spider调用"></a>
+## 集成Scrapy spider调用
+
+Django项目中集成Scrapy爬虫框架，并通过views进行调用，这里我们仅仅讨论通过命令执行爬取过程。
+
+将scrapy项目根目录文件拷贝至django项目根目录下，如图所示：
+
+![](../assets/Django/scrapy_in_django.png)
+
+django项目【views.py】添加测试方法即可：
+
+```py
+def start_spider(request):
+    # 两种方法均可以传递执行命令
+    subprocess.call('scrapy crawl aiit_spider')
+    # os.system('scrapy crawl aiit_spider')
+    return JsonResponse({'data': True})
+```
+
+对应的前端直接请求到该方法即可。
+
+
+如需更加精确的控制爬取过程，可以将爬虫部署起来，然后通过请求控制，参考如下：
+
+安装 `scprayd` ，网址：https://github.com/scrapy/scrapyd
+
+安装 `scrapyd-client` ，网址：https://github.com/scrapy/scrapyd-client
 
 
 
