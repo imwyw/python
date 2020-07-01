@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>hello django 标题</title>
+</head>
+<body>
+
+<h1>欢迎访问信工新闻主页</h1>
+
+<!-- 写入标签名称后，直接 tab 键，会自动生成该标签结构 -->
+<div></div>
+<ul></ul>
+
+<!-- ul>li*5 -->
+<ul>
+    {% for datum in data %}
+        <li>{{ datum }}</li>
+    {% endfor %}
+</ul>
+
+<!-- div.parent>div.sub+ul>li*3 -->
+<div class="parent">
+    <div class="sub"></div>
+    <ul>
+        <li></li>
+        <li></li>
+        <li></li>
+    </ul>
+</div>
+
+
+</body>
+</html>

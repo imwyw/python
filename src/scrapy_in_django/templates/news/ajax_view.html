@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ajax 数据交互</title>
+    <script type="text/javascript" src="{% static 'js/jquery-3.5.1.js' %}"></script>
+    {#    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>#}
+</head>
+<body>
+<h1>
+    <img src="{% static 'images/aiit.jpg' %}" style="width: 50px;height: 50px;">
+    新闻列表
+    <a href="{% url 'start_spider' %}">开始爬取</a>
+</h1>
+<div class="condition">
+    <input type="text" id="txtTitle" placeholder="请输入需要查询的标题">
+    <input type="text" id="txtAuthor" placeholder="请输入发布人">
+    <br>
+    <label for="">开始日期：</label><input type="date" id="start_date">
+    <label for="">结束日期：</label><input type="date" id="end_date">
+
+    <button id="btnQuery" onclick="query()">查询</button>
+</div>
+
+<div class="data_content">
+    <!-- TODO 如何操作dom，在此处显示 ajax 查询返回的数据呢？ -->
+</div>
+
+{# 怎么在按钮上绑定事件，点击查询时弹出文本框的值 #}
+<script type="text/javascript">
+    function query() {
+        console.log(document.getElementById('txtTitle').value);
+        // jquery 封装的ajax方法，接收一个js对象作为参数，具体的参数含义网上很多
+        $.ajax({
+            method: 'post',// 表单中method类似
+            url: '{% url "ajax_data" %}',// 相当于表单的action
+            data: {
+                'condition_title': document.getElementById('txtTitle').value,
+                'condition_author': document.getElementById('txtAuthor').value,
+                'start_date': document.getElementById('start_date').value,
+                'end_date': document.getElementById('end_date').value,
+            },// 请求时数据传参
+            success: function (resp) {
+                // 后端成功响应后返回的数据，resp是回调参数，名称随便
+                console.log(resp);
+                // 遍历后端返回的数据，并操作dom在页面上显示
+                resp.data.forEach(function (v, i) {
+                    // v 表示遍历的当前元素
+                    console.log(v.title + '==' + v.author);
+                });
+            }
+        });
+    }
+</script>
+</body>
+</html>

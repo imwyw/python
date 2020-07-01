@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>新闻信息</title>
+</head>
+<body>
+<h1>
+    {% if data == None %}
+        请输入新发布的内容
+    {% endif %}
+    {% if data != None %}
+        请输入需要更新的信息
+    {% endif %}
+</h1>
+<div>
+    <form action="{% url 'save_action' %}" method="post">
+        <input type="hidden" name="id" value="{{ data.id }}">
+        <fieldset>
+            <legend>标题</legend>
+            <input type="text" name="title" value="{{ data.title }}">
+        </fieldset>
+        <fieldset>
+            <legend>摘要信息</legend>
+            <textarea name="summary" cols="80" rows="10">{{ data.summary }}</textarea>
+        </fieldset>
+        <fieldset>
+            <legend>发布方</legend>
+            {#            <select name="author">#}
+            {#                <option value="新闻中心">新闻中心</option>#}
+            {#                <option value="教务处">教务处</option>#}
+            {#                <option value="校长办公室">校长办公室</option>#}
+            {#            </select>#}
+            <input type="text" name="author" value="{{ data.author }}">
+        </fieldset>
+        <fieldset>
+            <legend>发布日期</legend>
+            <input type="date" name="pub_date" value="{{ data.pub_date | date:'Y-m-d' }}">
+            <span>{{ data.pub_date }}</span>
+        </fieldset>
+        <fieldset>
+            <input type="submit" value="保存">
+        </fieldset>
+    </form>
+
+</div>
+
+</body>
+</html>
