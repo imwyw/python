@@ -100,3 +100,6 @@ ENV/
 # mypy
 .mypy_cache/
 /src/flask_shop/.idea
+/src/django_aiit_web/.idea
+/src/scrapy_aiit_news/.idea
+/src/scrapy_in_django/.idea
