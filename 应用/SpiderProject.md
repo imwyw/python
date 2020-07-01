@@ -1,31 +1,40 @@
 <!-- TOC -->
 
 - [爬虫案例](#爬虫案例)
-    - [12306铁路客服中心](#12306铁路客服中心)
-        - [创建项目和spider](#创建项目和spider)
+    - [项目创建](#项目创建)
+    - [车票信息数据获取](#车票信息数据获取)
+        - [创建spider](#创建spider)
         - [Request请求](#request请求)
         - [添加cookie](#添加cookie)
         - [新增启动文件start](#新增启动文件start)
+    - [车票信息解析](#车票信息解析)
 
 <!-- /TOC -->
 
 <a id="markdown-爬虫案例" name="爬虫案例"></a>
 # 爬虫案例
-
-<a id="markdown-12306铁路客服中心" name="12306铁路客服中心"></a>
-## 12306铁路客服中心
-
 基于 `Scrapy` 和 `Django` 的爬虫应用，爬取数据并持久化保存至 `mysql` ，可视化方式展现。
 
-<a id="markdown-创建项目和spider" name="创建项目和spider"></a>
-### 创建项目和spider
+<a id="markdown-项目创建" name="项目创建"></a>
+## 项目创建
 
-创建爬虫项目
-```bash
-scrapy startproject my_ticket
-```
+在命令提示符中分别执行以下两个命令，创建django项目和scrapy项目
 
-通过 `scrapy` 命名创建的项目，在 `pycharm` 中需要配置相应的解释器 `project interpreter` 
+`django-admin startproject my_ticket_web`
+
+`scrapy startproject ticket_scrapy`
+
+拷贝scrapy项目生成的【ticket_scrapy】和【scrapy.cfg】移动至django项目根目录中，如下图所示：
+
+![](../assets/Django/ticket_create_project.png)
+
+通过命令创建的项目，在 `pycharm` 中不要忘记配置对应的解释器 `project interpreter` 
+
+<a id="markdown-车票信息数据获取" name="车票信息数据获取"></a>
+## 车票信息数据获取
+
+<a id="markdown-创建spider" name="创建spider"></a>
+### 创建spider
 
 在终端窗口中执行下面的命令创建爬取车票信息的 `spider` 
 
@@ -68,6 +77,8 @@ purpos_codes:车票类型 ADULT 成人票
 
 所以，我们在实际爬取车票信息时候需要基于此 `url` 进行信息的获取：
 
+修改【ticket_spider.py】文件，重写 `start_requests` 和 `parse` 方法
+
 ```python
 # -*- coding: utf-8 -*-
 from scrapy import Spider
@@ -82,15 +93,15 @@ class TicketSpiderSpider(Spider):
         yield Request(url)
 
     def parse(self, response):
-        # 写入到 ticket.json 文件
-        with open('ticket.json', mode='wb') as f:
+        # 写入到 ticket.html 文件
+        with open('ticket.html', mode='wb') as f:
             f.write(response.body)
 
 ```
 
 执行命令 `scrapy crawl ticket_spider` 进行爬取。
 
-在项目根路径下会生成【ticket.json】文件，这个文件即服务端响应内容，打开并未显示任何有意义的数据，如下：
+在项目根路径下会生成【ticket.html】文件，这个文件即服务端响应内容，打开并未显示任何有意义的数据，如下：
 
 ```html
 <!DOCTYPE html
@@ -195,6 +206,7 @@ class TicketSpiderSpider(Spider):
     name = "ticket_spider"
 
     def start_requests(self):
+        # 在查询跟踪 network 中找到 ajax 请求，这个url才是我们应该爬取的内容
         url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-06-30&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
 
         # 浏览器控制台中 document.cookie 获取当前 cookie 值
@@ -243,6 +255,9 @@ cmdline.execute('scrapy crawl ticket_spider'.split())
 ```
 
 后续执行爬虫可以直接执行【start.py】文件，还可以方便的进行调试。
+
+<a id="markdown-车票信息解析" name="车票信息解析"></a>
+## 车票信息解析
 
 
 

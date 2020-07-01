@@ -103,3 +103,5 @@ ENV/
 /src/django_aiit_web/.idea
 /src/scrapy_aiit_news/.idea
 /src/scrapy_in_django/.idea
+/src/my_ticket_web/.idea
+
