@@ -25,6 +25,7 @@
     - [数据展现](#数据展现)
         - [创建应用](#创建应用)
         - [inspectdb反向迁移](#inspectdb反向迁移)
+        - [当前余票展现](#当前余票展现)
 
 <!-- /TOC -->
 
@@ -817,8 +818,8 @@ CREATE TABLE `t_left_ticket` (
   `end_station_code` varchar(50) DEFAULT NULL,
   `from_station_code` varchar(50) DEFAULT NULL COMMENT '出发站代码',
   `dest_station_code` varchar(50) DEFAULT NULL COMMENT '目的地代码',
-  `start_time` time DEFAULT NULL,
-  `arrive_time` time DEFAULT NULL,
+  `start_time` varchar(50) DEFAULT NULL,
+  `arrive_time` varchar(50) DEFAULT NULL,
   `run_time` varchar(50) DEFAULT NULL COMMENT '历时',
   `can_buy` varchar(50) DEFAULT NULL COMMENT '能否购买',
   `start_station_date` datetime DEFAULT NULL COMMENT '起始站发车日期',
@@ -1115,6 +1116,26 @@ INSTALLED_APPS = [
 ]
 ```
 
+在项目根路径下创建【templates】文件夹，用于后面支撑静态页面的存放，并修改【my_ticket_web/settings.py】中关于模板路径的配置：
+
+```py
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # 配置默认模板路径
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+```
+
 <a id="markdown-inspectdb反向迁移" name="inspectdb反向迁移"></a>
 ### inspectdb反向迁移
 
@@ -1181,8 +1202,8 @@ class TLeftTicket(models.Model):
     end_station_code = models.CharField(max_length=50, blank=True, null=True)
     from_station_code = models.CharField(max_length=50, blank=True, null=True)
     dest_station_code = models.CharField(max_length=50, blank=True, null=True)
-    start_time = models.TimeField(blank=True, null=True)
-    arrive_time = models.TimeField(blank=True, null=True)
+    start_time = models.CharField(max_length=50, blank=True, null=True)
+    arrive_time = models.CharField(max_length=50, blank=True, null=True)
     run_time = models.CharField(max_length=50, blank=True, null=True)
     can_buy = models.CharField(max_length=50, blank=True, null=True)
     start_station_date = models.DateTimeField(blank=True, null=True)
@@ -1217,17 +1238,125 @@ class TStation(models.Model):
         managed = False
         db_table = 't_station'
 
+
 ```
 
 注意：如果我们的数据表有变动的话，需要重新 `inspectdb` 反向生成模型 models.py
 
 
+<a id="markdown-当前余票展现" name="当前余票展现"></a>
+### 当前余票展现
+
+修改【ticket_scrapy/views.py】文件，添加处理方法：
+
+```py
+from django.shortcuts import render
+from . import models
 
 
+# Create your views here.
+def left_ticket_list(request):
+    '''
+    查询余票页面
+    :param request:
+    :return:
+    '''
+    # 所有车站信息，查询需要用到车站编码
+    stations = models.TStation.objects.all()
+    resp = {'data': stations}
+    return render(request, 'ticket_app/left_ticket_list.html', resp)
+```
 
+添加应用内路由文件【ticket_scrapy/urls.py】:
 
+```py
+from django.urls import path
+from . import views
 
+urlpatterns = [
+    path('left_ticket_list/', views.left_ticket_list, name='left_ticket_list'),
+]
 
+```
+
+修改【my_ticket_web/urls.py】根路由信息，添加应用路由：
+
+```py
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('ticket/', include('ticket_app.urls'))
+]
+```
+
+添加前端页面【templates/ticket_app/left_ticket_list.html】
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>余票查询</title>
+    <!-- 在head中引用时，通常先引用样式，再引用脚本，提高用户的体验感 -->
+    <!-- CSS only -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css"
+          integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="form-inline condition">
+        <div class="form-group">
+            <label for="start_date">出发日：</label>
+            <input type="date" class="form-control" id="train_date">
+        </div>
+        <div class="form-group">
+            <label for="txtTitle">出发地：</label>
+            <input type="text" class="form-control" id="txtFromStation" placeholder="请输入出发地点">
+        </div>
+        <div class="form-group">
+            <label for="txtTitle">目的地：</label>
+            <input type="text" class="form-control" id="txtDestStation" placeholder="请输入目的地">
+        </div>
+        <button class="btn btn-primary" id="btnQuery">查询</button>
+        <button class="btn btn-primary" id="btnSpider">爬取</button>
+    </div>
+    <div class="data_content">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>查询日期</th>
+                <th>车次</th>
+                <th>始发地</th>
+                <th>终点站</th>
+                <th>出发站点</th>
+                <th>目的站点</th>
+                <th>发车时间</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ticket in ticket_list %}
+                <tr>
+                    <td>{{ ticket.query_time }}</td>
+                    <td>{{ ticket.train_code }}</td>
+                    <td>{{ ticket.start_station_code }}</td>
+                    <td>{{ ticket.end_station_code }}</td>
+                    <td>{{ ticket.from_station_code }}</td>
+                    <td>{{ ticket.dest_station_code }}</td>
+                    <td>{{ ticket.start_time }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
+```
+
+运行 my_tickey_web 配置，浏览页面查看效果。
 
 
 参考引用：

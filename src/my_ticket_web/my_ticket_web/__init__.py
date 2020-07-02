@@ -11,5 +11,5 @@ pymysql.install_as_MySQLdb()
 
 from django.db.backends.mysql.base import DatabaseWrapper
 
-# 因为Django2.2+ 和 MySQL5.5 的日期时间字段映射有问题，需要调整
+# 因为 Django2.2+ 和 MySQL5.5 的日期时间字段映射有问题，需要调整
 DatabaseWrapper.data_types['DateTimeField'] = 'datetime'

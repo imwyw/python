@@ -6,5 +6,5 @@ from scrapy import cmdline
 cmdline.execute('scrapy crawl ticket_spider -a query_conditions=train_date=2020-07-30,from_station=SZH,to_station=SHH,purpose_codes=ADULT'.split())
 
 # 全国车站信息编码
-# cmdline.execute('scrapy crawl station_spider'.split())
+cmdline.execute('scrapy crawl station_spider'.split())
 

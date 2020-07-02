@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>余票查询</title>
+    <!-- 在head中引用时，通常先引用样式，再引用脚本，提高用户的体验感 -->
+    <!-- CSS only -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css"
+          integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="form-inline condition">
+        <div class="form-group">
+            <label for="start_date">出发日：</label>
+            <input type="date" class="form-control" id="train_date">
+        </div>
+        <div class="form-group">
+            <label for="txtTitle">出发地：</label>
+            <input type="text" class="form-control" id="txtFromStation" placeholder="请输入出发地点">
+        </div>
+        <div class="form-group">
+            <label for="txtTitle">目的地：</label>
+            <input type="text" class="form-control" id="txtDestStation" placeholder="请输入目的地">
+        </div>
+        <button class="btn btn-primary" id="btnQuery">查询</button>
+        <button class="btn btn-primary" id="btnSpider">爬取</button>
+    </div>
+    <div class="data_content">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>查询日期</th>
+                <th>车次</th>
+                <th>始发地</th>
+                <th>终点站</th>
+                <th>出发站点</th>
+                <th>目的站点</th>
+                <th>发车时间</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ticket in ticket_list %}
+                <tr>
+                    <td>{{ ticket.query_time }}</td>
+                    <td>{{ ticket.train_code }}</td>
+                    <td>{{ ticket.start_station_code }}</td>
+                    <td>{{ ticket.end_station_code }}</td>
+                    <td>{{ ticket.from_station_code }}</td>
+                    <td>{{ ticket.dest_station_code }}</td>
+                    <td>{{ ticket.start_time }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
