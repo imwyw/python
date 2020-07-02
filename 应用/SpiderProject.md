@@ -7,7 +7,9 @@
         - [Request请求](#request请求)
         - [添加cookie](#添加cookie)
         - [新增启动文件start](#新增启动文件start)
-    - [车票信息解析](#车票信息解析)
+        - [cookie帮助](#cookie帮助)
+    - [车站信息解析](#车站信息解析)
+        - [添加车站爬虫](#添加车站爬虫)
 
 <!-- /TOC -->
 
@@ -94,7 +96,7 @@ class TicketSpiderSpider(Spider):
 
     def parse(self, response):
         # 写入到 ticket.html 文件
-        with open('ticket.html', mode='wb') as f:
+        with open('out/ticket.html', mode='wb') as f:
             f.write(response.body)
 
 ```
@@ -227,7 +229,7 @@ class TicketSpiderSpider(Spider):
 
     def parse(self, response):
         # 写入到 ticket.json 文件
-        with open('ticket.json', mode='wb') as f:
+        with open('out/ticket.json', mode='wb') as f:
             f.write(response.body)
 
 ```
@@ -256,8 +258,73 @@ cmdline.execute('scrapy crawl ticket_spider'.split())
 
 后续执行爬虫可以直接执行【start.py】文件，还可以方便的进行调试。
 
-<a id="markdown-车票信息解析" name="车票信息解析"></a>
-## 车票信息解析
+<a id="markdown-cookie帮助" name="cookie帮助"></a>
+### cookie帮助
+
+为了后续多个spider应用可以共用cookie，我们心中cookie 的帮助文件：
+
+在【ticket_scrapy】目录下新增两个文件：【cookie.txt】和【cookie_helper.py】
+
+【cookie_helper.py】用于对文本文件中保存的cookie进行读取和解析成字典值，后面我们将采用自动化的方式获取并保存cookie值
+
+```py
+def get_cookie_dict():
+    # 从文本中读取cookie信息
+    with open('./ticket_scrapy/cookie.txt') as f:
+        cookie_string = f.readline()
+
+    # 定义 cookie 字典
+    cookie_dict = {}
+    # cookie 字符串中每对 key-value 以分号分隔
+    cookie_array = cookie_string.split(';')
+    for cookie_item in cookie_array:
+        # 以等号拆分，取出 key 和 value 对应的值
+        item_key = cookie_item.split('=')[0].replace(' ', '')
+        item_value = cookie_item.split('=')[1]
+        cookie_dict[item_key] = item_value
+
+    return cookie_dict
+
+```
+
+同步修改【ticket_spider.py】文件如下：
+
+```py
+# -*- coding: utf-8 -*-
+
+import scrapy
+from scrapy import Request
+from ..cookie_helper import get_cookie_dict
+
+
+class TicketSpiderSpider(scrapy.Spider):
+    '''
+    查询 A-B 车票信息
+    '''
+    name = "ticket_spider"
+
+    def start_requests(self):
+        # 查询车票实际调用的api
+        url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-07-02&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
+
+        # 从配置中获取cookie字典
+        cookie_dict = get_cookie_dict()
+
+        yield Request(url, cookies=cookie_dict)
+
+    def parse(self, response):
+        # 写入到 ticket.json 文件
+        with open('out/ticket.json', mode='wb') as f:
+            f.write(response.body)
+```
+
+<a id="markdown-车站信息解析" name="车站信息解析"></a>
+## 车站信息解析
+
+车票api接口返回的信息中包含了大量城市编码信息，我们首先需要获取全国车站信息并保存；
+
+<a id="markdown-添加车站爬虫" name="添加车站爬虫"></a>
+### 添加车站爬虫
 
 
 
