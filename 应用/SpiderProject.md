@@ -21,6 +21,10 @@
         - [余票数据表](#余票数据表)
         - [构造余票对象](#构造余票对象)
         - [余票持久化](#余票持久化)
+        - [带参数的spider](#带参数的spider)
+    - [数据展现](#数据展现)
+        - [创建应用](#创建应用)
+        - [inspectdb反向迁移](#inspectdb反向迁移)
 
 <!-- /TOC -->
 
@@ -1030,6 +1034,195 @@ cmdline.execute('scrapy crawl ticket_spider'.split())
 # 全国车站信息编码
 # cmdline.execute('scrapy crawl station_spider'.split())
 ```
+
+
+<a id="markdown-带参数的spider" name="带参数的spider"></a>
+### 带参数的spider
+
+`ticket_spider` 中的日期、出发地、目的地我们都是写死的，我们需要将这些参数由外部传入
+
+这样与django结合，由用户触发爬虫才能及时获取数据。
+
+重写【ticket_scrapy/spiders/ticket_spider.py】中构造方法，修改 `start_requests` 方法替换参数：
+
+```py
+class TicketSpiderSpider(scrapy.Spider):
+    '''
+    查询 A-B 车票信息
+    '''
+    name = "ticket_spider"
+
+    def __init__(self, query_conditions):
+        # 从命令行中获取参数
+        query_list = query_conditions.split(",")
+        self.train_date = query_list[0].split("=")[1]  # 日期
+        self.from_station = query_list[1].split("=")[1]  # 出发地
+        self.to_station = query_list[2].split("=")[1]  # 目的地
+        self.purpose_codes = query_list[3].split("=")[1]  # 成人/学生
+
+    def start_requests(self):
+        # 查询车票实际调用的api
+        # url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-07-31&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
+        url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=%s&leftTicketDTO.from_station=%s&leftTicketDTO.to_station=%s&purpose_codes=%s' \
+              % (self.train_date, self.from_station, self.to_station, self.purpose_codes)
+
+        # 从配置中获取cookie字典
+        cookie_dict = get_cookie_dict()
+
+        yield Request(url, cookies=cookie_dict)
+```
+
+在【start_scrapy.py】中进行传参执行：
+
+```py
+from scrapy import cmdline
+
+# A-B地车票信息
+# cmdline.execute('scrapy crawl ticket_spider'.split())
+# 带有参数的执行 query_conditions=中的query_conditions要与__init__中的参数名一样，-a 表示参数
+cmdline.execute('scrapy crawl ticket_spider -a query_conditions=train_date=2020-07-30,from_station=SZH,to_station=SHH,purpose_codes=ADULT'.split())
+
+# 全国车站信息编码
+# cmdline.execute('scrapy crawl station_spider'.split())
+```
+
+<a id="markdown-数据展现" name="数据展现"></a>
+## 数据展现
+
+接下来就是django的工作了，结合django展现数据，并调用spider进行爬取，并最终进行可视化展现。
+
+
+<a id="markdown-创建应用" name="创建应用"></a>
+### 创建应用
+
+使用命令 `python manage.py startapp ticket` 创建应用并挂载：
+
+```bash
+python manage.py startapp ticket_app
+```
+
+修改【my_ticket_web/settings.py】下 `INSTALLED_APPS` 配置：
+
+```py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'ticket_app'
+]
+```
+
+<a id="markdown-inspectdb反向迁移" name="inspectdb反向迁移"></a>
+### inspectdb反向迁移
+
+在【my_ticket_web/settings.py】中修改 `DATABASES` 相关配置：
+
+```py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+        'HOST': '127.0.0.1',  # mysql服务器的域名和ip地址
+        'PORT': '3306',  # mysql的一个端口号,默认是3306
+        'NAME': 'db_ticket',  # 数据库名称
+        'USER': 'root',  # 链接数据库的用户名
+        'PASSWORD': '123456',  # 链接数据库的密码
+    }
+}
+```
+
+并在【`my_ticket_web/__init__.py`】文件中进行mysql安装和配置
+
+```py
+import pymysql
+
+'''
+Django 3.0 和 pymysql 报以下错误，
+mysqlclient 1.3.13 or newer is required; you have 0.7.9.None.
+简单粗暴的解决方案，直接修改版本信息
+'''
+pymysql.version_info = (1, 3, 13, 'final', 0)
+
+pymysql.install_as_MySQLdb()
+
+from django.db.backends.mysql.base import DatabaseWrapper
+
+# 因为Django2.2+ 和 MySQL5.5 的日期时间字段映射有问题，需要调整
+DatabaseWrapper.data_types['DateTimeField'] = 'datetime'
+
+```
+
+前期表已经存在，我们只需要通过命名将表反向迁移生成模型【models.py】即可。
+
+```bash
+python manage.py inspectdb > ./ticket_app/models.py
+```
+
+在应用中生成【ticket_app/models.py】如下：
+
+```py
+# This is an auto-generated Django model module.
+# You'll have to do the following manually to clean this up:
+#   * Rearrange models' order
+#   * Make sure each model has one field with primary_key=True
+#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
+#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
+# Feel free to rename the models, but don't rename db_table values or field names.
+from django.db import models
+
+
+class TLeftTicket(models.Model):
+    query_time = models.DateTimeField(blank=True, null=True)
+    train_no = models.CharField(max_length=50, blank=True, null=True)
+    train_code = models.CharField(max_length=50, blank=True, null=True)
+    start_station_code = models.CharField(max_length=50, blank=True, null=True)
+    end_station_code = models.CharField(max_length=50, blank=True, null=True)
+    from_station_code = models.CharField(max_length=50, blank=True, null=True)
+    dest_station_code = models.CharField(max_length=50, blank=True, null=True)
+    start_time = models.TimeField(blank=True, null=True)
+    arrive_time = models.TimeField(blank=True, null=True)
+    run_time = models.CharField(max_length=50, blank=True, null=True)
+    can_buy = models.CharField(max_length=50, blank=True, null=True)
+    start_station_date = models.DateTimeField(blank=True, null=True)
+    gr_num = models.CharField(max_length=50, blank=True, null=True)
+    qt_num = models.CharField(max_length=50, blank=True, null=True)
+    rw_num = models.CharField(max_length=50, blank=True, null=True)
+    rz_num = models.CharField(max_length=50, blank=True, null=True)
+    tz_num = models.CharField(max_length=50, blank=True, null=True)
+    wz_num = models.CharField(max_length=50, blank=True, null=True)
+    yw_num = models.CharField(max_length=50, blank=True, null=True)
+    yz_num = models.CharField(max_length=50, blank=True, null=True)
+    edz_num = models.CharField(max_length=50, blank=True, null=True)
+    ydz_num = models.CharField(max_length=50, blank=True, null=True)
+    swz_num = models.CharField(max_length=50, blank=True, null=True)
+    dw_num = models.CharField(max_length=50, blank=True, null=True)
+    remark = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 't_left_ticket'
+
+
+class TStation(models.Model):
+    short_name = models.CharField(max_length=20, blank=True, null=True)
+    full_name = models.CharField(max_length=20, blank=True, null=True)
+    station_code = models.CharField(max_length=10, blank=True, null=True)
+    station_pin = models.CharField(max_length=50, blank=True, null=True)
+    short_name2 = models.CharField(max_length=20, blank=True, null=True)
+    num_code = models.IntegerField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 't_station'
+
+```
+
+注意：如果我们的数据表有变动的话，需要重新 `inspectdb` 反向生成模型 models.py
+
+
+
 
 
 

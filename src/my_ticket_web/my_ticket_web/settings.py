@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ticket_app'
 ]
 
 MIDDLEWARE = [
@@ -75,8 +76,12 @@ WSGI_APPLICATION = 'my_ticket_web.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+        'HOST': '127.0.0.1',  # mysql服务器的域名和ip地址
+        'PORT': '3306',  # mysql的一个端口号,默认是3306
+        'NAME': 'db_ticket',  # 数据库名称
+        'USER': 'root',  # 链接数据库的用户名
+        'PASSWORD': '123456',  # 链接数据库的密码
     }
 }
 

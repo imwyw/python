@@ -13,6 +13,15 @@ class TicketSpiderSpider(scrapy.Spider):
     查询 A-B 车票信息
     '''
     name = "ticket_spider"
+
+    def __init__(self, query_conditions):
+        # 从命令行中获取参数
+        query_list = query_conditions.split(",")
+        self.train_date = query_list[0].split("=")[1]  # 日期
+        self.from_station = query_list[1].split("=")[1]  # 出发地
+        self.to_station = query_list[2].split("=")[1]  # 目的地
+        self.purpose_codes = query_list[3].split("=")[1]  # 成人/学生
+
     # 覆盖默认的settings配置，针对不同的spider应用不同的管道
     custom_settings = {
         'ITEM_PIPELINES': {
@@ -22,7 +31,9 @@ class TicketSpiderSpider(scrapy.Spider):
 
     def start_requests(self):
         # 查询车票实际调用的api
-        url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-07-31&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
+        # url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-07-31&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
+        url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=%s&leftTicketDTO.from_station=%s&leftTicketDTO.to_station=%s&purpose_codes=%s' \
+              % (self.train_date, self.from_station, self.to_station, self.purpose_codes)
 
         # 从配置中获取cookie字典
         cookie_dict = get_cookie_dict()
