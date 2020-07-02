@@ -10,9 +10,63 @@ import pymysql
 
 
 class TicketScrapyPipeline(object):
+    # 1、启用 spider，此方法内适合写入数据库的连接
+    def open_spider(self, spider):
+        settings = get_project_settings()
+        self.db_conn = pymysql.connect(
+            host=settings['MYSQL_HOST'],
+            port=settings['MYSQL_PORT'],
+            db=settings['MYSQL_DBNAME'],
+            user=settings['MYSQL_USER'],
+            passwd=settings['MYSQL_PASSWD'],
+            charset='utf8'
+        )
+        self.db_cur = self.db_conn.cursor()
 
+    # 2、处理 item 数据，适合进行数据的操作，比如插库
     def process_item(self, item, spider):
+        self.add_left_ticket(item)
         return item
+
+    # 3、关闭爬虫spider，此处释放资源关闭数据库连接
+    def close_spider(self, spider):
+        self.db_conn.close()
+
+    # 插入数据
+    def add_left_ticket(self, item):
+        try:
+            # 需要维护的列，item属性和数据表列表保持一致的前提才能这么写！
+            field_list = [
+                'query_time', 'train_no', 'train_code',
+                'start_station_code', 'end_station_code', 'from_station_code',
+                'dest_station_code', 'start_time', 'arrive_time',
+                'run_time', 'can_buy', 'start_station_date',
+                'gr_num', 'qt_num', 'rw_num',
+                'rz_num', 'tz_num', 'wz_num',
+                'yw_num', 'yz_num', 'edz_num',
+                'ydz_num', 'swz_num', 'dw_num'
+            ]
+
+            value_list = []  # 调用execute时需要插入实际值，从item中解析
+            field_str = ''  # 插入时的字段
+            value_str = ''  # 插入values后对应的 %s ，这样就不用一个个数着添加
+            for fname in field_list:
+                field_str += fname + ','
+                value_list.append(item[fname])
+
+            for ind in range(len(field_list)):
+                value_str += '%s,'
+            # 去掉最后多余的 ,
+            field_str = field_str.rstrip(',')
+            value_str = value_str.rstrip(',')
+
+            sql = "insert into t_left_ticket (%s) values (%s)" % (field_str, value_str)
+
+            self.db_cur.execute(sql, value_list)
+            self.db_conn.commit()
+        except Exception as ex:
+            print(ex)
+            self.db_conn.rollback()
 
 
 class StationScrapyPipeline(object):

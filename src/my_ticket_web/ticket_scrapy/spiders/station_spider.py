@@ -53,12 +53,12 @@ class StationSpiderSpider(scrapy.Spider):
                 if len(info_list) < 5:
                     continue
                 station_item = StationScrapyItem()
-                station_item.short_name = info_list[0]
-                station_item.full_name = info_list[1]
-                station_item.station_code = info_list[2]
-                station_item.station_pin = info_list[3]
-                station_item.short_name2 = info_list[4]
-                station_item.num_code = info_list[5]
+                station_item['short_name'] = info_list[0]
+                station_item['full_name'] = info_list[1]
+                station_item['station_code'] = info_list[2]
+                station_item['station_pin'] = info_list[3]
+                station_item['short_name2'] = info_list[4]
+                station_item['num_code'] = info_list[5]
                 yield station_item
             except Exception as ex:
                 print(ex)
