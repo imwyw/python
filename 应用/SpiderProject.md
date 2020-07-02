@@ -2,7 +2,7 @@
 
 - [爬虫案例](#爬虫案例)
     - [项目创建](#项目创建)
-    - [车票信息数据获取](#车票信息数据获取)
+    - [余票信息数据获取](#余票信息数据获取)
         - [创建spider](#创建spider)
         - [Request请求](#request请求)
         - [添加cookie](#添加cookie)
@@ -15,7 +15,12 @@
         - [数据表设计](#数据表设计)
         - [管道数据处理](#管道数据处理)
         - [爬取车站测试](#爬取车站测试)
-    - [车票信息解析](#车票信息解析)
+    - [余票信息解析](#余票信息解析)
+        - [余票查询json格式分析](#余票查询json格式分析)
+        - [余票Item类](#余票item类)
+        - [余票数据表](#余票数据表)
+        - [构造余票对象](#构造余票对象)
+        - [余票持久化](#余票持久化)
 
 <!-- /TOC -->
 
@@ -38,13 +43,13 @@
 
 通过命令创建的项目，在 `pycharm` 中不要忘记配置对应的解释器 `project interpreter` 
 
-<a id="markdown-车票信息数据获取" name="车票信息数据获取"></a>
-## 车票信息数据获取
+<a id="markdown-余票信息数据获取" name="余票信息数据获取"></a>
+## 余票信息数据获取
 
 <a id="markdown-创建spider" name="创建spider"></a>
 ### 创建spider
 
-在终端窗口中执行下面的命令创建爬取车票信息的 `spider` 
+在终端窗口中执行下面的命令创建爬取余票信息的 `spider` 
 
 ```bash
 scrapy genspider ticket_spider www.12306.cn
@@ -191,7 +196,7 @@ class TicketSpiderSpider(Spider):
 <a id="markdown-添加cookie" name="添加cookie"></a>
 ### 添加cookie
 
-通过浏览器进行查询车票信息，我们在控制台中可以通过 `document.cookie` 查询当前的 `cookie` 信息：
+通过浏览器进行查询余票信息，我们在控制台中可以通过 `document.cookie` 查询当前的 `cookie` 信息：
 
 ```
 document.cookie
@@ -250,6 +255,10 @@ class TicketSpiderSpider(Spider):
 
 以上便是一个标准的 `json` 格式。
 
+需要注意的是，如果仍然没有数据的话，检查一下日期是否正确。
+
+当然，如果都正确的情况下，仍然无数据返回或重定向了，那很有可能就是12306更新了反爬策略。
+
 <a id="markdown-新增启动文件start" name="新增启动文件start"></a>
 ### 新增启动文件start
 
@@ -305,12 +314,12 @@ from ..cookie_helper import get_cookie_dict
 
 class TicketSpiderSpider(scrapy.Spider):
     '''
-    查询 A-B 车票信息
+    查询 A-B 余票信息
     '''
     name = "ticket_spider"
 
     def start_requests(self):
-        # 查询车票实际调用的api
+        # 查询余票实际调用的api
         url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-07-02&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
 
         # 从配置中获取cookie字典
@@ -327,7 +336,7 @@ class TicketSpiderSpider(scrapy.Spider):
 <a id="markdown-车站信息解析" name="车站信息解析"></a>
 ## 车站信息解析
 
-车票api接口返回的信息中包含了大量城市编码信息，我们首先需要获取全国车站信息并保存；
+余票api接口返回的信息中包含了大量城市编码信息，我们首先需要获取全国车站信息并保存；
 
 <a id="markdown-添加车站爬虫" name="添加车站爬虫"></a>
 ### 添加车站爬虫
@@ -624,7 +633,7 @@ class StationSpiderSpider(scrapy.Spider):
 ```py
 from scrapy import cmdline
 
-# A-B地车票信息
+# A-B地余票信息
 # cmdline.execute('scrapy crawl ticket_spider'.split())
 
 # 全国车站信息编码
@@ -635,10 +644,392 @@ cmdline.execute('scrapy crawl station_spider'.split())
 检查数据库，完成所有车站信息的爬取。
 
 
-<a id="markdown-车票信息解析" name="车票信息解析"></a>
-## 车票信息解析
+<a id="markdown-余票信息解析" name="余票信息解析"></a>
+## 余票信息解析
+
+<a id="markdown-余票查询json格式分析" name="余票查询json格式分析"></a>
+### 余票查询json格式分析
+
+对【ticket_scrapy/spiders/ticket_spider.py】爬取得到的json进一步分析，取其中一部分：
+
+```json
+{"httpstatus":200,"data":{"result":["vCMLKJYJqvuFU......|预订|49000K10520A|K1049|QHK|RZH|HFH|WHH|02:17|03:45|01:28|Y|Kxetu6Hvtn57jCH2u8EbKLvjq6%2B00aJd2QyYs%2FH6s%2Biesiir|20200629|3|KA|19|20|1|0|||||||无||有|有|||||3010W0|311|1|0||300695002110023500211002353000||||||1|"],"flag":"1","map":{"WHH":"芜湖","HFH":"合肥"}},"messages":"","status":true}
+```
+
+其中result数组是查询结果内容，可以从中看到列车号、车次、始发站代码等等信息。
+
+<a id="markdown-余票item类" name="余票item类"></a>
+### 余票Item类
+
+浏览器中转js对象观察某一个余票信息如下：
+
+```
+0: "lGHhQyO6tEKTmo%2FobjekUXS8O0wmIe6OJ4LEJxKocPqfk4GMN071H5ugmZmhu%2BPFU0Zkr6kTo1FB%0A2wxbLXh%2BW5qXA5jC%2Bo%2FemswyghAUoj6ZDnR7rKPD1YSR4mbQHWIJ3OMjpKcuzg0NWMV14OPc2HNz%0AbCcRMuOPO%2BMX1W%2FpRnngit2012GdSXCA50xfnhgmYfOqNDGH24o5aG9ilR4i9FWShBJis2TDhn4W%0AquTkNIk4cvDZ16jmLzg8ey0ZIlJKP4XBaLVQKpi2ieevymKMBKkCYfiUks3qvkLEBjtrweVuxOLY%0ApnsiEoQ5rag%3D"
+1: "预订"
+2: "5i000G742120"
+3: "G7421"
+4: "ENH"
+5: "ECH"
+6: "ENH"
+7: "WHH"
+8: "08:00"
+9: "08:44"
+10: "00:44"
+11: "Y"
+12: "XiN9NId6JuCJGXxHrgxKF9wckmjmByC5yhpvsQBW8hEW2hjkVY8h8cRC950%3D"
+13: "20200731"
+14: "3"
+15: "H2"
+16: "01"
+17: "03"
+18: "1"
+19: "0"
+20: ""
+21: ""
+22: ""
+23: ""
+24: ""
+25: ""
+26: "无"
+27: ""
+28: ""
+29: ""
+30: "有"
+31: "有"
+32: "10"
+33: ""
+34: "O090M0W0"
+35: "O9MO"
+36: "0"
+37: "0"
+38: ""
+39: "O0054000219016850010M009000021O005403000"
+40: ""
+41: ""
+42: ""
+43: ""
+44: ""
+45: "1"
+46: "0"
+```
+
+创建余票信息对应的Item类，修改【ticket_scrapy/items.py】文件修改默认的 `TicketScrapyItem` 类
+
+```py
+class TicketScrapyItem(scrapy.Item):
+    # define the fields for your item here like:
+    # name = scrapy.Field()
+
+    # 记录爬取时间，即当前时间
+    query_time = scrapy.Field()
+
+    # 0 看着像什么校验码，不确定，内容很长
+    valid_code = scrapy.Field()
+    # 1 预订 固定值
+
+    # 2 列车号
+    train_no = scrapy.Field()
+    # 3 车次
+    train_code = scrapy.Field()
+
+    # 4 始发站代码
+    start_station_code = scrapy.Field()
+    # 5 终点站代码
+    end_station_code = scrapy.Field()
+
+    # 6 出发站代码
+    from_station_code = scrapy.Field()
+    # 7 目的地代码
+    dest_station_code = scrapy.Field()
+    # 出发站名称
+    from_station_name = scrapy.Field()
+    # 目的地名称
+    dest_station_name = scrapy.Field()
+
+    # 8 出发时刻
+    start_time = scrapy.Field()
+    # 9 到达时刻
+    arrive_time = scrapy.Field()
+    # 10 历时
+    run_time = scrapy.Field()
+
+    # 11 能否购买？ Y：可以，N：不可以，IS_TIME_NOT_BUY：暂停发售/列车停运
+    can_buy = scrapy.Field()
+
+    # 12 未知校验码。。。
+    valid_code2 = scrapy.Field()
+
+    # 13 起始站发车日期
+    start_station_date = scrapy.Field()
+
+    # 21 高级软卧
+    gr_num = scrapy.Field()
+    # 22 其他
+    qt_num = scrapy.Field()
+    # 23 软卧，一等卧
+    rw_num = scrapy.Field()
+    # 24 软座
+    rz_num = scrapy.Field()
+    # 25 特等？未知。。。
+    tz_num = scrapy.Field()
+    # 26 无座
+    wz_num = scrapy.Field()
+    # 27 未知
+    unknow1_num = scrapy.Field()
+    # 28 硬卧，二等卧
+    yw_num = scrapy.Field()
+    # 29 硬座
+    yz_num = scrapy.Field()
+    # 30 二等座
+    edz_num = scrapy.Field()
+    # 31 一等座
+    ydz_num = scrapy.Field()
+    # 32 商务座
+    swz_num = scrapy.Field()
+    # 33 动卧
+    dw_num = scrapy.Field()
+
+    remark = scrapy.Field()
+
+    pass
+```
+
+<a id="markdown-余票数据表" name="余票数据表"></a>
+### 余票数据表
+
+在数据库中创建 `t_left_ticket` 表：
+
+```sql
+-- ----------------------------
+-- Table structure for `t_left_ticket`
+-- ----------------------------
+DROP TABLE IF EXISTS `t_left_ticket`;
+CREATE TABLE `t_left_ticket` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `query_time` datetime DEFAULT NULL,
+  `train_no` varchar(50) DEFAULT NULL COMMENT '列车号',
+  `train_code` varchar(50) DEFAULT NULL COMMENT '车次',
+  `start_station_code` varchar(50) DEFAULT NULL COMMENT '始发站代码',
+  `end_station_code` varchar(50) DEFAULT NULL,
+  `from_station_code` varchar(50) DEFAULT NULL COMMENT '出发站代码',
+  `dest_station_code` varchar(50) DEFAULT NULL COMMENT '目的地代码',
+  `start_time` time DEFAULT NULL,
+  `arrive_time` time DEFAULT NULL,
+  `run_time` varchar(50) DEFAULT NULL COMMENT '历时',
+  `can_buy` varchar(50) DEFAULT NULL COMMENT '能否购买',
+  `start_station_date` datetime DEFAULT NULL COMMENT '起始站发车日期',
+  `gr_num` varchar(50) DEFAULT NULL COMMENT '高级软卧',
+  `qt_num` varchar(50) DEFAULT NULL COMMENT '其他',
+  `rw_num` varchar(50) DEFAULT NULL COMMENT '软卧，一等卧',
+  `rz_num` varchar(50) DEFAULT NULL COMMENT '软座',
+  `tz_num` varchar(50) DEFAULT NULL COMMENT '特等？未知。。。',
+  `wz_num` varchar(50) DEFAULT NULL COMMENT '无座',
+  `yw_num` varchar(50) DEFAULT NULL COMMENT '硬卧，二等卧',
+  `yz_num` varchar(50) DEFAULT NULL COMMENT '硬座',
+  `edz_num` varchar(50) DEFAULT NULL COMMENT '二等座',
+  `ydz_num` varchar(50) DEFAULT NULL COMMENT '一等座',
+  `swz_num` varchar(50) DEFAULT NULL,
+  `dw_num` varchar(50) DEFAULT NULL COMMENT '动卧',
+  `remark` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=117 DEFAULT CHARSET=utf8mb4;
+```
+
+<a id="markdown-构造余票对象" name="构造余票对象"></a>
+### 构造余票对象
+
+修改【ticket_scrapy/spiders/ticket_spider.py】文件：
+
+```py
+# -*- coding: utf-8 -*-
+import datetime
+import json
+
+import scrapy
+from scrapy import Request
+from ..cookie_helper import get_cookie_dict
+from ..items import TicketScrapyItem
 
 
+class TicketSpiderSpider(scrapy.Spider):
+    '''
+    查询 A-B 余票信息
+    '''
+    name = "ticket_spider"
+    # 覆盖默认的settings配置，针对不同的spider应用不同的管道
+    custom_settings = {
+        'ITEM_PIPELINES': {
+            'ticket_scrapy.pipelines.TicketScrapyPipeline': 300,
+        }
+    }
+
+    def start_requests(self):
+        # 查询余票实际调用的api
+        url = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date=2020-07-31&leftTicketDTO.from_station=HFH&leftTicketDTO.to_station=WHH&purpose_codes=ADULT'
+
+        # 从配置中获取cookie字典
+        cookie_dict = get_cookie_dict()
+
+        yield Request(url, cookies=cookie_dict)
+
+    def parse(self, response):
+        # 写入到 ticket.json 文件，方便观察对比
+        with open('out/ticket.json', mode='wb') as f:
+            f.write(response.body)
+
+        # 将响应的json字符串转换为字典值
+        left_ticket_dict = json.loads(response.text)
+        # 遍历每个车次信息
+        for ticket_info in left_ticket_dict['data']['result']:
+            # print(ticket_info)
+            try:
+                tk_item = self.get_ticket_item(ticket_info)
+                if tk_item:
+                    yield tk_item
+            except Exception as ex:
+                print(ex)
+
+    def get_ticket_item(self, info_str):
+        '''
+        将json字符串转换为余票对象
+        :return: 余票对象，可以被管道直接处理
+        '''
+        info_list = str(info_str).split('|')
+        if len(info_list) < 34:
+            return None
+
+        ticket_item = TicketScrapyItem()
+        # ticket_item['valid_code'] = info_list[0]
+
+        ticket_item['train_no'] = info_list[2]
+        ticket_item['train_code'] = info_list[3]
+
+        ticket_item['start_station_code'] = info_list[4]
+        ticket_item['end_station_code'] = info_list[5]
+
+        ticket_item['from_station_code'] = info_list[6]
+        ticket_item['dest_station_code'] = info_list[7]
+
+        ticket_item['start_time'] = info_list[8]
+        ticket_item['arrive_time'] = info_list[9]
+        ticket_item['run_time'] = info_list[10]
+
+        ticket_item['can_buy'] = info_list[11]
+
+        # ticket_item['valid_code2'] = info_list[12]
+
+        ticket_item['start_station_date'] = info_list[13]
+
+        ticket_item['gr_num'] = info_list[21]
+        ticket_item['qt_num'] = info_list[22]
+        ticket_item['rw_num'] = info_list[23]
+        ticket_item['rz_num'] = info_list[24]
+        ticket_item['tz_num'] = info_list[25]
+        ticket_item['wz_num'] = info_list[26]
+        
+        ticket_item['yw_num'] = info_list[28]
+        ticket_item['yz_num'] = info_list[29]
+        ticket_item['edz_num'] = info_list[30]
+        ticket_item['ydz_num'] = info_list[31]
+        ticket_item['swz_num'] = info_list[32]
+        ticket_item['dw_num'] = info_list[33]
+
+        # 设置当前日期
+        ticket_item['query_time'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        return ticket_item
+
+```
+
+<a id="markdown-余票持久化" name="余票持久化"></a>
+### 余票持久化
+
+修改管道文件【ticket_scrapy/pipelines.py】中 `TicketScrapyPipeline` 类：
+
+```py
+# -*- coding: utf-8 -*-
+
+# Define your item pipelines here
+#
+# Don't forget to add your pipeline to the ITEM_PIPELINES setting
+# See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
+
+from scrapy.utils.project import get_project_settings
+import pymysql
+
+
+class TicketScrapyPipeline(object):
+    # 1、启用 spider，此方法内适合写入数据库的连接
+    def open_spider(self, spider):
+        settings = get_project_settings()
+        self.db_conn = pymysql.connect(
+            host=settings['MYSQL_HOST'],
+            port=settings['MYSQL_PORT'],
+            db=settings['MYSQL_DBNAME'],
+            user=settings['MYSQL_USER'],
+            passwd=settings['MYSQL_PASSWD'],
+            charset='utf8'
+        )
+        self.db_cur = self.db_conn.cursor()
+
+    # 2、处理 item 数据，适合进行数据的操作，比如插库
+    def process_item(self, item, spider):
+        self.add_left_ticket(item)
+        return item
+
+    # 3、关闭爬虫spider，此处释放资源关闭数据库连接
+    def close_spider(self, spider):
+        self.db_conn.close()
+
+    # 插入数据
+    def add_left_ticket(self, item):
+        try:
+            # 需要维护的列，item属性和数据表列表保持一致的前提才能这么写！
+            field_list = [
+                'query_time', 'train_no', 'train_code',
+                'start_station_code', 'end_station_code', 'from_station_code',
+                'dest_station_code', 'start_time', 'arrive_time',
+                'run_time', 'can_buy', 'start_station_date',
+                'gr_num', 'qt_num', 'rw_num',
+                'rz_num', 'tz_num', 'wz_num',
+                'yw_num', 'yz_num', 'edz_num',
+                'ydz_num', 'swz_num', 'dw_num'
+            ]
+
+            value_list = []  # 调用execute时需要插入实际值，从item中解析
+            field_str = ''  # 插入时的字段
+            value_str = ''  # 插入values后对应的 %s ，这样就不用一个个数着添加
+            for fname in field_list:
+                field_str += fname + ','
+                value_list.append(item[fname])
+
+            for ind in range(len(field_list)):
+                value_str += '%s,'
+            # 去掉最后多余的 ,
+            field_str = field_str.rstrip(',')
+            value_str = value_str.rstrip(',')
+
+            sql = "insert into t_left_ticket (%s) values (%s)" % (field_str, value_str)
+
+            self.db_cur.execute(sql, value_list)
+            self.db_conn.commit()
+        except Exception as ex:
+            print(ex)
+            self.db_conn.rollback()
+
+```
+
+运行【start_scrapy.py】文件，数据可以正确插入数据库中
+
+```py
+from scrapy import cmdline
+
+# A-B地余票信息
+cmdline.execute('scrapy crawl ticket_spider'.split())
+
+# 全国车站信息编码
+# cmdline.execute('scrapy crawl station_spider'.split())
+```
 
 
 
