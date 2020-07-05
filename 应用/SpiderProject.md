@@ -1356,7 +1356,7 @@ urlpatterns = [
 </html>
 ```
 
-运行 my_tickey_web 配置，浏览页面查看效果。
+运行 my_tickey_web 配置，通过地址： `localhost:xxxx/ticket/left_ticket_list` 浏览页面查看效果。
 
 
 参考引用：
