@@ -281,7 +281,7 @@ cmdline.execute('scrapy crawl ticket_spider'.split())
 <a id="markdown-cookie帮助方法" name="cookie帮助方法"></a>
 ### cookie帮助方法
 
-为了后续多个spider应用可以共用cookie，我们心中cookie 的帮助文件：
+为了后续多个spider应用可以共用cookie，我们新建 cookie 的帮助文件：
 
 在【ticket_scrapy】目录下新增两个文件：【cookie.txt】和【cookie_helper.py】
 
@@ -1247,7 +1247,7 @@ class TStation(models.Model):
 <a id="markdown-当前余票展现" name="当前余票展现"></a>
 ### 当前余票展现
 
-修改【ticket_scrapy/views.py】文件，添加处理方法：
+修改【ticket_app/views.py】文件，添加处理方法：
 
 ```py
 from django.shortcuts import render
