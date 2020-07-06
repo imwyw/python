@@ -27,7 +27,7 @@ def train_cout_hour(request):
     :param request:
     :return:
     '''
-    # 拿到全量数据，然后进行筛选，得到小时段的统计
+    # 拿到全量数据，然后进行筛选，得到小时段的统计，先写死地点
     left_tickets = ticket_biz.get_last_ticket_list('合肥', '芜湖')
     # 最终统计数据 列表元素为 {hour:xx,count:xx}
     result = []

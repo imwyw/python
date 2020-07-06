@@ -26,6 +26,11 @@
         - [创建应用](#创建应用)
         - [inspectdb反向迁移](#inspectdb反向迁移)
         - [当前余票展现](#当前余票展现)
+    - [数据可视化](#数据可视化)
+        - [数据准备](#数据准备)
+        - [禁用](#禁用)
+        - [数据处理](#数据处理)
+        - [折线图显示](#折线图显示)
 
 <!-- /TOC -->
 
@@ -1357,6 +1362,338 @@ urlpatterns = [
 ```
 
 运行 my_tickey_web 配置，通过地址： `localhost:xxxx/ticket/left_ticket_list` 浏览页面查看效果。
+
+
+<a id="markdown-数据可视化" name="数据可视化"></a>
+## 数据可视化
+
+基于前面的分析，我们可以进行简单的可视化操作，此处我们选取百度的 `echarts` 作为可视化工具。
+
+考虑到 `echarts` 更具通用性，网络资源也更加丰富，所以在此不对 `pyecharts` 做说明。
+
+<a id="markdown-数据准备" name="数据准备"></a>
+### 数据准备
+
+由于余票获取的都是车站编码信息，所以我们需要通过SQL多表连接查询出全量信息，以方便后期我们的处理：
+
+查询从出发地到目的地的余票情况，这里还有个问题就是爬取到的数据应该记录三个信息（出发日期、出发地、目的地）
+
+因为实际爬取到的地点可能是该城市的多个站，筛选时就会有些麻烦。
+
+```sql
+    SELECT
+	a.id,
+	a.query_time,
+	a.train_no,
+	a.train_code,
+	start_st.station_code start_code,
+	start_st.full_name start_name,
+	end_st.station_code end_code,
+	end_st.full_name end_name,
+	from_st.station_code from_code,
+	from_st.full_name from_name,
+	dest_st.station_code to_code,
+	dest_st.full_name to_name,
+	a.start_time,
+	a.arrive_time,
+	a.run_time,
+	a.gr_num,
+	a.rw_num,
+	a.rz_num,
+	a.tz_num,
+	a.wz_num,
+	a.yw_num,
+	a.yz_num,
+	a.edz_num,
+	a.ydz_num,
+	a.swz_num,
+	a.dw_num
+FROM
+	t_left_ticket a
+LEFT JOIN t_station start_st ON a.start_station_code = start_st.station_code
+LEFT JOIN t_station end_st ON a.end_station_code = end_st.station_code
+LEFT JOIN t_station from_st ON a.from_station_code = from_st.station_code
+LEFT JOIN t_station dest_st ON a.dest_station_code = dest_st.station_code
+WHERE
+	can_buy != 'IS_TIME_NOT_BUY'
+AND from_st.full_name LIKE '%合肥%'
+AND dest_st.full_name LIKE '%芜湖%'
+AND query_time =(
+	SELECT
+		query_time
+	FROM
+		t_left_ticket
+	WHERE
+		1 = 1
+	AND from_st.full_name LIKE '%合肥%'
+	AND dest_st.full_name LIKE '%芜湖%'
+	GROUP BY
+		query_time
+	ORDER BY
+		query_time DESC
+	LIMIT 1
+)
+```
+
+考虑到后续我们会有很多业务数据和分析和处理，新增业务处理文件【ticket_app/biz/ticket_biz.py】
+
+```py
+from collections import namedtuple
+
+from django.db import connection
+
+
+def get_last_ticket_list(from_name, dest_name):
+    '''
+    查询最近一次爬取到的 A-B 余票信息
+    TODO 此处暂未考虑车票哪一天的。。。。
+    :param from_name: 模糊匹配出发地名称
+    :param dest_name: 模糊匹配到达地名称
+    :return: 返回list
+    '''
+    sql = '''
+    SELECT
+	a.id,
+	a.query_time,
+	a.train_no,
+	a.train_code,
+	start_st.station_code start_code,
+	start_st.full_name start_name,
+	end_st.station_code end_code,
+	end_st.full_name end_name,
+	from_st.station_code from_code,
+	from_st.full_name from_name,
+	dest_st.station_code to_code,
+	dest_st.full_name to_name,
+	a.start_time,
+	a.arrive_time,
+	a.run_time,
+	a.gr_num,
+	a.rw_num,
+	a.rz_num,
+	a.tz_num,
+	a.wz_num,
+	a.yw_num,
+	a.yz_num,
+	a.edz_num,
+	a.ydz_num,
+	a.swz_num,
+	a.dw_num
+FROM
+	t_left_ticket a
+LEFT JOIN t_station start_st ON a.start_station_code = start_st.station_code
+LEFT JOIN t_station end_st ON a.end_station_code = end_st.station_code
+LEFT JOIN t_station from_st ON a.from_station_code = from_st.station_code
+LEFT JOIN t_station dest_st ON a.dest_station_code = dest_st.station_code
+WHERE
+	can_buy != 'IS_TIME_NOT_BUY'
+AND from_st.full_name LIKE %s
+AND dest_st.full_name LIKE %s
+AND query_time =(
+	SELECT
+		query_time
+	FROM
+		t_left_ticket
+	WHERE
+		1 = 1
+	AND from_st.full_name LIKE %s
+	AND dest_st.full_name LIKE %s
+	GROUP BY
+		query_time
+	ORDER BY
+		query_time DESC
+	LIMIT 1
+)
+    '''
+    param_from_name = '%' + from_name + '%'
+    param_dest_name = '%' + dest_name + '%'
+    with connection.cursor() as cursor:
+        cursor.execute(sql, (param_from_name, param_dest_name, param_from_name, param_dest_name))
+        # result = namedtuplefetchall(cursor)
+        result = dictfetchall(cursor)
+    return result
+
+
+def namedtuplefetchall(cursor):
+    '''
+    参考官网：https://docs.djangoproject.com/el/3.0/topics/db/sql/
+    '''
+    "Return all rows from a cursor as a namedtuple"
+    desc = cursor.description
+    nt_result = namedtuple('Result', [col[0] for col in desc])
+    return [nt_result(*row) for row in cursor.fetchall()]
+
+
+def dictfetchall(cursor):
+    "Return all rows from a cursor as a dict"
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
+
+```
+
+<a id="markdown-禁用" name="禁用"></a>
+### 禁用
+
+禁用 `CsrfViewMiddleware` ，防止 `ajax` 请求数据问题出现问题
+
+```py
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+```
+
+<a id="markdown-数据处理" name="数据处理"></a>
+### 数据处理
+
+修改【ticket_app/views.py】文件，新增请求处理方法：
+
+```py
+def train_cout_hour(request):
+    '''
+    以小时为单位统计 每小时内车次数量
+    :param request:
+    :return:
+    '''
+    # 拿到全量数据，然后进行筛选，得到小时段的统计，先写死地点
+    left_tickets = ticket_biz.get_last_ticket_list('合肥', '芜湖')
+    # 最终统计数据 列表元素为 {hour:xx,count:xx}
+    result = []
+
+    # 0-23 统计每个小时区间的车次数量
+    for hour in range(24):
+        current_hour = {'hour': hour, 'count': 0}
+        # 筛选 出发时间的小时段
+        has_train_filter = filter(lambda x: int(x['start_time'].split(':')[0]) == hour, left_tickets)
+        current_hour['count'] = len(list(has_train_filter))
+        result.append(current_hour)
+
+    resp = {'data': result}
+    return JsonResponse(resp)
+```
+
+添加绑定的路由，修改【ticket_app/urls.py】路由：
+
+```py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('left_ticket_list/', views.left_ticket_list, name='left_ticket_list'),
+    path('train_cout_hour/', views.train_cout_hour, name='train_cout_hour'),
+]
+```
+
+<a id="markdown-折线图显示" name="折线图显示"></a>
+### 折线图显示
+在前端页面中引入 echarts 并初始化调用，在原有的 【templates/ticket_app/left_ticket_list.html】
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>余票查询</title>
+    <!-- 在head中引用时，通常先引用样式，再引用脚本，提高用户的体验感 -->
+    <!-- CSS only -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css"
+          integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4.8.0/dist/echarts.min.js"></script>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="form-inline condition">
+        <div class="form-group">
+            <label for="start_date">出发日：</label>
+            <input type="date" class="form-control" id="train_date">
+        </div>
+        <div class="form-group">
+            <label for="txtTitle">出发地：</label>
+            <input type="text" class="form-control" id="txtFromStation" placeholder="请输入出发地点">
+        </div>
+        <div class="form-group">
+            <label for="txtTitle">目的地：</label>
+            <input type="text" class="form-control" id="txtDestStation" placeholder="请输入目的地">
+        </div>
+        <button class="btn btn-primary" id="btnQuery">查询</button>
+        <button class="btn btn-primary" id="btnSpider">爬取</button>
+    </div>
+    <hr>
+    <div class="container" id="stat_hour" style="height: 400px;"></div>
+    <div class="data_content">
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>查询日期</th>
+                <th>车次</th>
+                <th>始发地</th>
+                <th>终点站</th>
+                <th>出发站点</th>
+                <th>目的站点</th>
+                <th>发车时间</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ticket in ticket_list %}
+                <tr>
+                    <td>{{ ticket.query_time|date:'Y-m-d' }}</td>
+                    <td>{{ ticket.train_code }}</td>
+                    <td>{{ ticket.start_station_code }}</td>
+                    <td>{{ ticket.end_station_code }}</td>
+                    <td>{{ ticket.from_station_code }}</td>
+                    <td>{{ ticket.dest_station_code }}</td>
+                    <td>{{ ticket.start_time }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script type="text/javascript">
+        var hourChart = echarts.init(document.getElementById('stat_hour'));
+
+        $.ajax({
+            url: '{% url "train_cout_hour" %}',
+            method: 'post',
+            success: function (resp) {
+                option = {
+                    xAxis: {
+                        type: 'category',
+                        data: resp.data.map(function (t, i) {
+                            return t.hour;
+                        }),
+                        name: '时段'
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name:'车次统计'
+                    },
+                    series: [{
+                        data: resp.data.map(function (t, i) {
+                            return t.count;
+                        }),
+                        type: 'line',
+                    }]
+                };
+                hourChart.setOption(option);
+            }
+        })
+
+    </script>
+</div>
+</body>
+</html>
+```
+
+
 
 
 参考引用：
