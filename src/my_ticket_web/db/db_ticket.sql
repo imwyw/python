@@ -11,7 +11,7 @@ CREATE TABLE `t_station` (
   `short_name2` varchar(20) DEFAULT NULL,
   `num_code` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3019 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------
 -- Table structure for `t_left_ticket`
@@ -45,4 +45,19 @@ CREATE TABLE `t_left_ticket` (
   `dw_num` varchar(50) DEFAULT NULL COMMENT '动卧',
   `remark` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=117 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for `t_train`
+-- ----------------------------
+DROP TABLE IF EXISTS `t_train`;
+CREATE TABLE `t_train` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `train_date` date DEFAULT NULL,
+  `train_type` varchar(4) DEFAULT NULL,
+  `train_no` varchar(40) DEFAULT NULL,
+  `train_code` varchar(20) DEFAULT NULL,
+  `start_station` varchar(40) DEFAULT NULL,
+  `end_station` varchar(40) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;

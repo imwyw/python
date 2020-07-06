@@ -1,3 +1,5 @@
+import json
+
 from django.http import JsonResponse
 from django.shortcuts import render
 from . import models
@@ -41,20 +43,4 @@ def train_cout_hour(request):
         result.append(current_hour)
 
     resp = {'data': result}
-    return JsonResponse(resp)
-
-
-def read_train_list(request):
-    '''
-    解析全国所有车次信息，排班表
-    :param request:
-    :return:
-    '''
-    resp = {'data': None}
-    try:
-        with open('out/train_list.js') as f:
-            pass
-    except Exception as ex:
-        print(ex)
-
     return JsonResponse(resp)

@@ -31,6 +31,12 @@
         - [禁用](#禁用)
         - [数据处理](#数据处理)
         - [折线图显示](#折线图显示)
+    - [排班表的分析](#排班表的分析)
+        - [排班表数据分析](#排班表数据分析)
+        - [排班表模型建立](#排班表模型建立)
+        - [排版数据表](#排版数据表)
+        - [管道数据处理](#管道数据处理-1)
+        - [爬虫执行](#爬虫执行)
 
 <!-- /TOC -->
 
@@ -1594,7 +1600,7 @@ urlpatterns = [
 
 <a id="markdown-折线图显示" name="折线图显示"></a>
 ### 折线图显示
-在前端页面中引入 echarts 并初始化调用，在原有的 【templates/ticket_app/left_ticket_list.html】
+在前端页面中引入 `echarts` 并初始化调用，在原有的 【templates/ticket_app/left_ticket_list.html】
 
 ```html
 <!DOCTYPE html>
@@ -1694,7 +1700,304 @@ urlpatterns = [
 ```
 
 
+<a id="markdown-排班表的分析" name="排班表的分析"></a>
+## 排班表的分析
 
+全国车次表每隔一段时间都会更新，此api数据量较大，不建议直接通过浏览器访问
+
+https://kyfw.12306.cn/otn/resources/js/query/train_list.js
+
+<a id="markdown-排班表数据分析" name="排班表数据分析"></a>
+### 排班表数据分析
+
+排班表数据爬虫，创建 `spider` 文件【ticket_scrapy/spiders/train_spider.py】：
+
+```py
+# -*- coding: utf-8 -*-
+import json
+import re
+
+import scrapy
+from scrapy import Request
+
+from ticket_scrapy.cookie_helper import get_cookie_dict
+
+
+class TrainSpiderSpider(scrapy.Spider):
+    '''
+    对全国所有车次信息的爬取，文件较大，不要经常跑
+    '''
+    name = "train_spider"
+
+    def start_requests(self):
+        # 全国所有所有车次信息，即排班表
+        url = 'https://kyfw.12306.cn/otn/resources/js/query/train_list.js'
+
+        cookie_dict = get_cookie_dict()
+
+        yield Request(url, cookies=cookie_dict)
+
+    def parse(self, response):
+        try:
+            # 写入到 train_list.json 文件进行测试观察
+            with open('out/train_list.json', mode='wb') as f:
+
+                js_str = response.body
+                # 匹配 json 段内容
+                json_str = re.findall('{.*$', js_str.decode('utf-8'))[0]
+                # 编码重新写入文件中，以便后续处理需求
+                f.write(json_str.encode('utf-8'))
+
+                # 解析得到json字典值，进而处理
+                json_dict = json.loads(json_str)
+        except Exception as ex:
+            print(ex)
+
+```
+
+执行爬虫，修改【start_scrapy.py】文件：
+
+```py
+from scrapy import cmdline
+
+# A-B地车票信息
+# cmdline.execute('scrapy crawl ticket_spider'.split())
+# 带有参数的执行 query_conditions=中的query_conditions要与__init__中的参数名一样，-a 表示参数
+# cmdline.execute(
+#     'scrapy crawl ticket_spider -a query_conditions=train_date=2020-07-10,from_station=HFH,to_station=WHH,purpose_codes=ADULT'.split())
+
+# 全国车站信息编码
+# cmdline.execute('scrapy crawl station_spider'.split())
+
+# 全国所有车次信息，即排班表
+cmdline.execute('scrapy crawl train_spider'.split())
+```
+
+在【out】文件夹中，会生成对应的车次数据json文件，精简化结构如下：
+
+```json
+{
+    "2020-7-1":{
+        "D":[
+            {"station_train_code":"D1(北京-沈阳南)","train_no":"24000000D121"},
+            {"station_train_code":"D2(沈阳南-北京)","train_no":"12000000D20K"}
+        ],
+        "G":[],
+        "K":[]
+    },
+    "2020-7-2":{
+        "D":[
+            {"station_train_code":"D1(北京-沈阳南)","train_no":"24000000D121"},
+            {"station_train_code":"D2(沈阳南-北京)","train_no":"12000000D20K"}
+        ],
+        "G":[],
+        "K":[]
+    }
+}
+```
+
+<a id="markdown-排班表模型建立" name="排班表模型建立"></a>
+### 排班表模型建立
+
+创建item模型，创建【ticket_scrapy/scrapy_items/train_item.py】文件：
+
+```py
+import scrapy
+
+
+class TrainScrapyItem(scrapy.Item):
+    '''
+    车次相关信息
+    '''
+    # 猜测是发车时间
+    train_date = scrapy.Field()
+    # 列车类型 D,T,G,C,O,K,Z
+    train_type = scrapy.Field()
+    # 车次编号
+    train_no = scrapy.Field()
+    # 车次
+    train_code = scrapy.Field()
+    # 起始站
+    start_station = scrapy.Field()
+    # 终点站
+    end_station = scrapy.Field()
+
+    pass
+```
+
+另外，需要注意的是，如果引用导入出现问题，请添加【`ticket_scrapy/scrapy_items/__init__.py`】
+
+
+<a id="markdown-排版数据表" name="排版数据表"></a>
+### 排版数据表
+
+创建对应的数据库表：
+
+```sql
+-- ----------------------------
+-- Table structure for `t_train`
+-- ----------------------------
+DROP TABLE IF EXISTS `t_train`;
+CREATE TABLE `t_train` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `train_date` date DEFAULT NULL,
+  `train_type` varchar(4) DEFAULT NULL,
+  `train_no` varchar(40) DEFAULT NULL,
+  `train_code` varchar(20) DEFAULT NULL,
+  `start_station` varchar(40) DEFAULT NULL,
+  `end_station` varchar(40) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+```
+
+<a id="markdown-管道数据处理-1" name="管道数据处理-1"></a>
+### 管道数据处理
+
+创建管道处理文件，【ticket_scrapy/pipelines/pipeline_train.py】文件
+
+```py
+import pymysql
+from scrapy.utils.project import get_project_settings
+
+
+class TrainScrapyPipeline(object):
+    '''
+    车次信息管道，全国排班表
+    '''
+    # 待插入列表
+    train_list = []
+
+    # 1、启用 spider，此方法内适合写入数据库的连接
+    def open_spider(self, spider):
+        settings = get_project_settings()
+        self.db_conn = pymysql.connect(
+            host=settings['MYSQL_HOST'],
+            port=settings['MYSQL_PORT'],
+            db=settings['MYSQL_DBNAME'],
+            user=settings['MYSQL_USER'],
+            passwd=settings['MYSQL_PASSWD'],
+            charset='utf8'
+        )
+        self.db_cur = self.db_conn.cursor()
+
+    # 2、处理 item 数据，适合进行数据的操作，比如插库
+    def process_item(self, item, spider):
+        value_tuple = (
+            item['train_date'], item['train_type'], item['train_no'],
+            item['train_code'], item['start_station'], item['end_station']
+        )
+        self.train_list.append(value_tuple)
+        # 每多少条记录执行一次提交
+        batch_count = 100
+        if len(self.train_list) == batch_count:
+            self.bulk_add_news(self.train_list)
+            # 批量插入完成后，清空待插入列表
+            del self.train_list[:]
+        return item
+
+    # 3、关闭爬虫spider，此处释放资源关闭数据库连接
+    def close_spider(self, spider):
+        # 防止关闭爬虫时，待插入列表中仍有记录需要插库
+        if len(self.train_list) > 0:
+            self.bulk_add_news(self.train_list)
+        self.db_conn.close()
+
+    # 批量插入数据
+    def bulk_add_news(self, value_list):
+        try:
+            sql = "insert into t_train(train_date,train_type,train_no,train_code,start_station,end_station) values (%s,%s,%s,%s,%s,%s)"
+            self.db_cur.executemany(sql, value_list)
+            self.db_conn.commit()
+        except Exception as ex:
+            print(ex)
+            self.db_conn.rollback()
+
+
+```
+
+同样的，如果引用导入出现问题，请添加【`ticket_scrapy/pipelines/__init__.py`】文件
+
+<a id="markdown-爬虫执行" name="爬虫执行"></a>
+### 爬虫执行
+
+修改spider parse处理方法，构造item，并交给管道处理，修改【ticket_scrapy/spiders/train_spider.py】：
+
+```py
+# -*- coding: utf-8 -*-
+import json
+import re
+
+import scrapy
+from scrapy import Request
+
+from ticket_scrapy.cookie_helper import get_cookie_dict
+from ticket_scrapy.scrapy_items.train_item import TrainScrapyItem
+
+
+class TrainSpiderSpider(scrapy.Spider):
+    '''
+    对全国所有车次信息的爬取，文件较大，不要经常跑
+    '''
+    name = "train_spider"
+    # 覆盖默认的settings配置，针对不同的spider应用不同的管道
+    custom_settings = {
+        'ITEM_PIPELINES': {
+            'ticket_scrapy.pipelines.pipeline_train.TrainScrapyPipeline': 300,
+        }
+    }
+
+    def start_requests(self):
+        # 全国所有所有车次信息，即排班表
+        url = 'https://kyfw.12306.cn/otn/resources/js/query/train_list.js'
+
+        cookie_dict = get_cookie_dict()
+
+        yield Request(url, cookies=cookie_dict)
+
+    def parse(self, response):
+        try:
+            # 写入到 train_list.json 文件进行测试观察
+            with open('out/train_list.json', mode='wb') as f:
+
+                js_str = response.body
+                # 匹配 json 段内容
+                json_str = re.findall('{.*$', js_str.decode('utf-8'))[0]
+                # 编码重新写入文件中，以便后续处理需求
+                f.write(json_str.encode('utf-8'))
+
+                # 解析得到json字典值，进而处理
+                json_dict = json.loads(json_str)
+                # 构造一个列车车次信息
+                train_item = TrainScrapyItem()
+
+                # item_date 是日期，item_type_list 是该日期的所有车次
+                # todo，需要重构，三层循环有点恶心。。。
+                for (item_date, item_type_list) in json_dict.items():
+                    # item_type 是 列车类型，train_list 是该车次下所有的列车信息列表
+                    for (item_type, train_list) in item_type_list.items():
+                        # 每个车次类型下所有详情信息
+                        for train_info in train_list:
+                            train_item['train_date'] = item_date
+                            train_item['train_type'] = item_type
+                            train_item['train_no'] = train_info['train_no']
+                            info_code = train_info['station_train_code'].split('(')[0]
+                            station_a2b = train_info['station_train_code'].split('(')[1].replace(')', '')
+                            train_item['train_code'] = info_code
+                            train_item['start_station'] = station_a2b.split('-')[0]
+                            train_item['end_station'] = station_a2b.split('-')[1]
+                            yield train_item
+                            pass
+                        pass
+                    pass
+
+
+        except Exception as ex:
+            print(ex)
+```
+
+最终数据表中数据量大概在 32w+ 
+
+![](../assets/Demo/train_data.png)
 
 参考引用：
 

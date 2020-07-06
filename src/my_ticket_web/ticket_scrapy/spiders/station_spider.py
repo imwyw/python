@@ -4,6 +4,7 @@ import scrapy
 from scrapy import Request
 from ..cookie_helper import get_cookie_dict
 import re
+
 from ..items import StationScrapyItem
 
 
