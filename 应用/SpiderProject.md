@@ -34,7 +34,7 @@
     - [排班表的分析](#排班表的分析)
         - [排班表数据分析](#排班表数据分析)
         - [排班表模型建立](#排班表模型建立)
-        - [排版数据表](#排版数据表)
+        - [全量车次数据表](#全量车次数据表)
         - [管道数据处理](#管道数据处理-1)
         - [爬虫执行](#爬虫执行)
 
@@ -491,7 +491,7 @@ CREATE TABLE `t_station` (
   `short_name2` varchar(20) DEFAULT NULL,
   `num_code` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3019 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 ```
 
 
@@ -848,7 +848,7 @@ CREATE TABLE `t_left_ticket` (
   `dw_num` varchar(50) DEFAULT NULL COMMENT '动卧',
   `remark` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=117 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 ```
 
 <a id="markdown-构造余票对象" name="构造余票对象"></a>
@@ -1273,7 +1273,7 @@ def left_ticket_list(request):
     :return:
     '''
     # 所有车站信息，查询需要用到车站编码
-    stations = models.TStation.objects.all()
+    stations = models.TLeftTicket.objects.all()
     resp = {'data': stations}
     return render(request, 'ticket_app/left_ticket_list.html', resp)
 ```
@@ -1348,7 +1348,7 @@ urlpatterns = [
             </tr>
             </thead>
             <tbody>
-            {% for ticket in ticket_list %}
+            {% for ticket in data %}
                 <tr>
                     <td>{{ ticket.query_time }}</td>
                     <td>{{ ticket.train_code }}</td>
@@ -1828,8 +1828,8 @@ class TrainScrapyItem(scrapy.Item):
 另外，需要注意的是，如果引用导入出现问题，请添加【`ticket_scrapy/scrapy_items/__init__.py`】
 
 
-<a id="markdown-排版数据表" name="排版数据表"></a>
-### 排版数据表
+<a id="markdown-全量车次数据表" name="全量车次数据表"></a>
+### 全量车次数据表
 
 创建对应的数据库表：
 
