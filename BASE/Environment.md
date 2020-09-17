@@ -1,12 +1,13 @@
 <!-- TOC -->
 
 - [环境及配置](#环境及配置)
-    - [Anaconda](#anaconda)
-        - [环境变量](#环境变量)
-        - [Channels源设置](#channels源设置)
-    - [pycharm](#pycharm)
-    - [其他](#其他)
-        - [PermissionError](#permissionerror)
+  - [Anaconda](#anaconda)
+    - [环境变量](#环境变量)
+    - [Channels源设置](#channels源设置)
+  - [pycharm](#pycharm)
+  - [其他](#其他)
+    - [PermissionError](#permissionerror)
+    - [AnacondaNavigator打开无响应](#anacondanavigator打开无响应)
 
 <!-- /TOC -->
 
@@ -85,4 +86,18 @@ hello python
 pip或者interpreter安装包时发生错误：
 
 `PermissionError: [Errno 13] Permission denied: 'C:\\ProgramData\\Anaconda3\\pkgs\\cache\\2116b818.json'`
+
+<a id="markdown-anacondanavigator打开无响应" name="anacondanavigator打开无响应"></a>
+### AnacondaNavigator打开无响应
+
+```cmd
+:: 先更新pip
+python -m pip install --upgrade pip
+
+pip install pyqt5 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+:: pip安装超时问题-pip._vendor.urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='files.pythonhosted.org', port=443): Read timed out.
+pip --default-timeout=100 install pyqt5 -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
 
