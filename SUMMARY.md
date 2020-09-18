@@ -14,5 +14,6 @@
     * [Django](./应用/Django.md)
     * [Flask](./应用/Flask.md)
     * [爬虫案例](./应用/SpiderProject.md)
+    * [GUI](./应用/GUI.md)
 
 
